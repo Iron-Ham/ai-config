@@ -26,7 +26,7 @@ brew install vjeantet/tap/alerter
 `setup-opencode.sh` manages `${OPENCODE_CONFIG_DIR:-~/.config/opencode}`. It links repository-owned instructions, agents, commands, and skills; copies plugins and TUI support; merges managed JSON defaults; preserves unrelated local configuration; backs up replacements; and rolls back the active configuration if a late validation fails. Restart OpenCode after installation.
 
 `setup-omp.sh` manages the global OMP profile at `~/.omp/agent/config.yml` (inside the agent directory reported by `omp config path`). It installs and verifies OMP 17.1.2 through `mise exec bun@1.3.14`, avoiding project-local Bun versions. It applies the small repo-managed profile through an atomic, offline merge and asks OMP to parse the resulting roles. Existing OMP settings and model roles are preserved except for the explicitly managed `default`, `plan`, `smol`, `slow`, `tiny`, `task`, `commit`, and `advisor` roles, the enabled GPT-5.6 Sol High advisor, and hidden TUI thinking blocks. No credentials are read or written.
-The managed role map uses Terra XHigh for `default` and `plan`, Luna Medium for `smol`, Luna High for `task`, Sol High for `slow` and `advisor`, Luna Low for `tiny`, and Kimi K2.7 Code through Baseten for `commit`.
+The managed role map uses Terra XHigh for `default` and `plan`, Terra High for `task`, Luna High for `smol`, Sol High for `slow` and `advisor`, Luna Low for `tiny`, and Kimi K2.7 Code through Baseten for `commit`.
 
 ## Managed Surface
 

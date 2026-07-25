@@ -4,10 +4,10 @@ modelRoleStorage: global
 modelRoles:
   default: openai/gpt-5.6-terra:xhigh
   plan: openai/gpt-5.6-terra:xhigh
-  smol: openai/gpt-5.6-luna:medium
+  smol: openai/gpt-5.6-luna:high
   slow: openai/gpt-5.6-sol:high
   tiny: openai/gpt-5.6-luna:low
-  task: openai/gpt-5.6-luna:high
+  task: openai/gpt-5.6-terra:high
   commit: baseten/moonshotai/Kimi-K2.7-Code
   advisor: openai/gpt-5.6-sol:high
 hideThinkingBlock: true
