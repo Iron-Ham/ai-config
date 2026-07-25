@@ -33,6 +33,7 @@ try {
     tiny: "openai/gpt-5.6-luna:low",
     advisor: "openai/gpt-5.6-sol:high",
   });
+  assert.equal(profile.hideThinkingBlock, true);
   assert.deepEqual(profile.advisor, { enabled: true });
   assert.equal(profile.task, undefined);
   assert.equal(profile.glob, undefined);
@@ -121,6 +122,7 @@ fi
   assert.equal(installed.modelRoles.vision, "openai/gpt-4o:high");
   assert.equal(installed.modelRoles.task, undefined);
   assert.equal(installed.advisor.enabled, true);
+  assert.equal(installed.hideThinkingBlock, true);
   assert.equal(installed.unmanaged.apiKey, "do-not-log-or-replace");
   assert.equal(installed.unmanaged.keep, true);
   assert.equal(installed.task, undefined);
@@ -190,6 +192,7 @@ fi
   const fallbackInstalled = Bun.YAML.parse(fs.readFileSync(fallbackConfig, "utf8"));
   assert.equal(fallbackInstalled.unmanaged.keep, true);
   assert.equal(fallbackInstalled.modelRoles.default, "openai/gpt-5.6-terra:xhigh");
+  assert.equal(fallbackInstalled.hideThinkingBlock, true);
 
   const rollbackConfig = "unmanaged:\n  preserved: before-failure\n";
   writeFile(configPath, rollbackConfig);

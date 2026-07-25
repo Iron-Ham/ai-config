@@ -8,6 +8,7 @@ modelRoles:
   slow: openai/gpt-5.6-sol:high
   tiny: openai/gpt-5.6-luna:low
   advisor: openai/gpt-5.6-sol:high
+hideThinkingBlock: true
 advisor:
   enabled: true
 astGrep:
