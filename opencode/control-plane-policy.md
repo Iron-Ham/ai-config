@@ -35,9 +35,6 @@ and automatic role-based route selection are outside this contract. A route is a
 complete provider, model, and serving-path identity; reasoning effort is
 optional runtime metadata and a role name is never evidence of model quality.
 
-`/ultra` is a Build command template, not a policy invocation mode. The policy
-resolver remains Build-only and rejects `ultra` as an invocation mode.
-
 ## Static Explore Default
 
 `explore` is fixed to `openai/gpt-5.6-terra` without a reasoning variant. This
