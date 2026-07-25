@@ -58,6 +58,7 @@ for (const asset of [
   path.join("commands", "kimi.md"),
   path.join("commands", "kimi-fireworks.md"),
   path.join("commands", "kimi-fireworks-fast.md"),
+  path.join("commands", "ultra.md"),
   path.join("plugins", "goal-mode.js"),
   path.join("plugins", "goal-mode.LICENSE"),
   path.join("plugins", "goal-mode-tui.tsx"),
@@ -134,14 +135,6 @@ for (const command of [
   if (config.command?.[command] !== undefined) {
     fail(`retired inline /${command} command configuration remains active`);
   }
-}
-const sourceUltraCommand = path.join(repoRoot, "opencode", "commands", "ultra.md");
-const installedUltraCommand = path.join(configDir, "commands", "ultra.md");
-if (!fs.existsSync(installedUltraCommand)) {
-  fail("managed commands/ultra.md is not installed");
-}
-if (!fs.readFileSync(installedUltraCommand).equals(fs.readFileSync(sourceUltraCommand))) {
-  fail("installed commands/ultra.md does not match the managed source");
 }
 if (config.provider?.["fireworks-ai"] !== undefined) {
   fail("the retired Fireworks experiment provider remains configured");

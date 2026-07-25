@@ -127,13 +127,6 @@ The primary model, `plan`, and `explore` default to GPT-5.6 Terra without a fixe
 
 In the managed global configuration, `build` may delegate to any subagent. `general` may delegate only to `code_reviewer` for a bounded, read-only review. `plan` may edit only `*.md` files. The reviewer still requires a concrete source boundary.
 
-`/ultra <request>` is an opt-in, stateless, Build-backed template for
-evidence-driven work. It preserves ordinary model and permission selection;
-native `Task` delegation is bounded to 10 concurrent calls and 20 distinct child sessions;
-reuse a returned `task_id` to continue an existing child without consuming that allowance,
-with one-level depth. It has no Goal state or Goal-mode continuation loop;
-ordinary OpenCode compaction may continue a context-limited turn.
-
 The local routing file is private and has this shape:
 
 ```json
@@ -168,7 +161,6 @@ bun scripts/test-opencode-compaction-observability.mjs
 bun scripts/test-opencode-doctor.mjs
 bun scripts/test-opencode-delegation-guard.mjs
 bun scripts/test-opencode-context-tools-secret-filter.mjs
-bun scripts/test-opencode-ultra-template.mjs
 bun scripts/test-opencode-total-cost.mjs
 bun scripts/test-omp-pi-config.mjs
 bun scripts/test-opencode-notion-assets.mjs

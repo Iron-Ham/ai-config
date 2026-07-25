@@ -94,7 +94,7 @@ const retiredGoalToolNames = new Set([
   "record_goal_progress",
   "record_goal_failure",
 ]);
-// Inline JSON /ultra targets the retired agent; the managed Markdown command remains installable.
+// Inline JSON /ultra targets the retired agent and must remain removed.
 const retiredInlineCommandNames = new Set([
   "advise",
   "glm",

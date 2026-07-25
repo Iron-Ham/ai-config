@@ -279,14 +279,11 @@ esac
   }
   for (const asset of [
     ...["advisor_reviewer", "glm_worker", "kimi_reader", "ultra"].map((name) => path.join("agents", `${name}.md`)),
-    ...["advise", "glm", "glm-fireworks", "glm-fireworks-fast", "goal", "kimi", "kimi-fireworks", "kimi-fireworks-fast"].map((name) => path.join("commands", `${name}.md`)),
+    ...["advise", "glm", "glm-fireworks", "glm-fireworks-fast", "goal", "kimi", "kimi-fireworks", "kimi-fireworks-fast", "ultra"].map((name) => path.join("commands", `${name}.md`)),
     ...["goal-mode.js", "goal-mode.LICENSE", "goal-mode-tui.tsx", "goal-workflow-guard.js"].map((name) => path.join("plugins", name)),
   ]) {
     assert.equal(fs.lstatSync(path.join(configDir, asset), { throwIfNoEntry: false }), undefined);
   }
-  const ultraCommandPath = path.join(configDir, "commands", "ultra.md");
-  assert.equal(fs.lstatSync(ultraCommandPath).isSymbolicLink(), true);
-  assert.equal(fs.readlinkSync(ultraCommandPath), path.join(repoRoot, "opencode", "commands", "ultra.md"));
   const ultraBackupCount = fs.readdirSync(path.join(configDir, "backups", "setup-opencode"))
     .filter((name) => name.startsWith("commands-ultra.md.bak.")).length;
   assert.equal(ultraBackupCount, 1);
@@ -337,12 +334,6 @@ esac
   assert.deepEqual(fs.readdirSync(transactionTempDir), []);
   assert.equal(fs.existsSync(path.join(testRoot, "notion-calls.log")), false);
 
-  assert.equal(fs.readlinkSync(ultraCommandPath), path.join(repoRoot, "opencode", "commands", "ultra.md"));
-  assert.equal(
-    fs.readdirSync(path.join(configDir, "backups", "setup-opencode"))
-      .filter((name) => name.startsWith("commands-ultra.md.bak.")).length,
-    ultraBackupCount,
-  );
   assert.deepEqual(fs.readdirSync(transactionTempDir), []);
 
   console.log("OK     OpenCode setup copies managed plugins and restores late failures");
