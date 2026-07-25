@@ -35,8 +35,8 @@ try {
   });
   assert.deepEqual(profile.advisor, { enabled: true });
   assert.deepEqual(profile.task, { maxConcurrency: 10, maxRecursionDepth: 1 });
-  assert.deepEqual(profile.glob, { enabled: true });
-  assert.deepEqual(profile.grep, { enabled: true });
+  assert.equal(profile.glob, undefined);
+  assert.equal(profile.grep, undefined);
   assert.deepEqual(profile.astGrep, { enabled: true });
   assert.deepEqual(profile.tools, { xdev: true, xdevDocs: "builtins" });
   assert.doesNotMatch(JSON.stringify(profile), /api[_-]?key|token|secret|password/i);
@@ -53,6 +53,12 @@ try {
     "  vision: openai/gpt-4o:high",
     "  task: \"@smol\"",
     "advisor:",
+    "  enabled: true",
+    "glob:",
+    "  enabled: true",
+    "grep:",
+    "  enabled: true",
+    "astGrep:",
     "  enabled: true",
     "unmanaged:",
     "  apiKey: do-not-log-or-replace",
@@ -115,6 +121,8 @@ fi
   assert.equal(installed.unmanaged.apiKey, "do-not-log-or-replace");
   assert.equal(installed.unmanaged.keep, true);
   assert.equal(installed.task.maxConcurrency, 10);
+  assert.equal(installed.glob, undefined);
+  assert.equal(installed.grep, undefined);
   assert.equal(installed.astGrep.enabled, true);
   assert.equal(installed.tools.xdev, true);
   assert.equal(installed.tools.discoveryMode, undefined);
@@ -125,7 +133,13 @@ fi
   assert.match(fs.readFileSync(miseLog, "utf8"), /exec bun@1\.3\.14 -- omp --version/);
 
   const customTaskConfig = path.join(testRoot, "custom-task", "config.yml");
-  writeFile(customTaskConfig, "modelRoles:\n  task: openai/gpt-5.6-sol:high\n");
+  writeFile(customTaskConfig, [
+    "modelRoles:",
+    "  task: openai/gpt-5.6-sol:high",
+    "glob:",
+    "  enabled: false",
+    "",
+  ].join("\n"));
   const preservedTask = Bun.spawnSync([
     process.execPath,
     path.join(repoRoot, "scripts", "merge-omp-config.mjs"),
@@ -133,10 +147,12 @@ fi
     customTaskConfig,
   ]);
   assert.equal(preservedTask.exitCode, 0, preservedTask.stderr.toString());
+  const preservedCustomConfig = Bun.YAML.parse(fs.readFileSync(customTaskConfig, "utf8"));
   assert.equal(
-    Bun.YAML.parse(fs.readFileSync(customTaskConfig, "utf8")).modelRoles.task,
+    preservedCustomConfig.modelRoles.task,
     "openai/gpt-5.6-sol:high",
   );
+  assert.equal(preservedCustomConfig.glob.enabled, false);
 
   const fallbackRoot = path.join(testRoot, "fallback");
   const fallbackConfig = path.join(fallbackRoot, "config.yml");
