@@ -49,6 +49,18 @@ const merged = mergeObjects(current, profile);
 if (merged.modelRoles?.task === "@smol") {
   delete merged.modelRoles.task;
 }
+// Remove the legacy managed task limits without changing custom task settings.
+if (
+  merged.task !== null &&
+  typeof merged.task === "object" &&
+  !Array.isArray(merged.task) &&
+  merged.task.maxConcurrency === 10 &&
+  merged.task.maxRecursionDepth === 1
+) {
+  delete merged.task.maxConcurrency;
+  delete merged.task.maxRecursionDepth;
+  if (Object.keys(merged.task).length === 0) delete merged.task;
+}
 // Context-tool configuration is owned by OpenCode. Preserve any OMP-specific
 // setting beyond an enable-only override.
 for (const toolName of ["glob", "grep"]) {
