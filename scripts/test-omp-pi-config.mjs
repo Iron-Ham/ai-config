@@ -29,7 +29,6 @@ try {
     default: "openai/gpt-5.6-terra:xhigh",
     plan: "openai/gpt-5.6-terra:xhigh",
     smol: "openai/gpt-5.6-luna:high",
-    task: "@smol",
     slow: "openai/gpt-5.6-sol:high",
     tiny: "openai/gpt-5.6-luna:low",
     advisor: "openai/gpt-5.6-sol:high",
@@ -52,6 +51,7 @@ try {
     "modelRoles:",
     "  advisor: anthropic/claude-sonnet:high",
     "  vision: openai/gpt-4o:high",
+    "  task: \"@smol\"",
     "advisor:",
     "  enabled: true",
     "unmanaged:",
@@ -110,6 +110,7 @@ fi
   const installed = Bun.YAML.parse(fs.readFileSync(configPath, "utf8"));
   assert.equal(installed.modelRoles.advisor, "openai/gpt-5.6-sol:high");
   assert.equal(installed.modelRoles.vision, "openai/gpt-4o:high");
+  assert.equal(installed.modelRoles.task, undefined);
   assert.equal(installed.advisor.enabled, true);
   assert.equal(installed.unmanaged.apiKey, "do-not-log-or-replace");
   assert.equal(installed.unmanaged.keep, true);
@@ -122,6 +123,20 @@ fi
   const calls = fs.readFileSync(callLog, "utf8");
   assert.match(calls, /config get modelRoles/);
   assert.match(fs.readFileSync(miseLog, "utf8"), /exec bun@1\.3\.14 -- omp --version/);
+
+  const customTaskConfig = path.join(testRoot, "custom-task", "config.yml");
+  writeFile(customTaskConfig, "modelRoles:\n  task: openai/gpt-5.6-sol:high\n");
+  const preservedTask = Bun.spawnSync([
+    process.execPath,
+    path.join(repoRoot, "scripts", "merge-omp-config.mjs"),
+    path.join(repoRoot, "omp", "omp.defaults.yml"),
+    customTaskConfig,
+  ]);
+  assert.equal(preservedTask.exitCode, 0, preservedTask.stderr.toString());
+  assert.equal(
+    Bun.YAML.parse(fs.readFileSync(customTaskConfig, "utf8")).modelRoles.task,
+    "openai/gpt-5.6-sol:high",
+  );
 
   const fallbackRoot = path.join(testRoot, "fallback");
   const fallbackConfig = path.join(fallbackRoot, "config.yml");
