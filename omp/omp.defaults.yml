@@ -10,9 +10,6 @@ modelRoles:
   advisor: openai/gpt-5.6-sol:high
 advisor:
   enabled: true
-task:
-  maxConcurrency: 10
-  maxRecursionDepth: 1
 astGrep:
   enabled: true
 tools:

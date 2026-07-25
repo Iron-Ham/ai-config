@@ -34,7 +34,7 @@ try {
     advisor: "openai/gpt-5.6-sol:high",
   });
   assert.deepEqual(profile.advisor, { enabled: true });
-  assert.deepEqual(profile.task, { maxConcurrency: 10, maxRecursionDepth: 1 });
+  assert.equal(profile.task, undefined);
   assert.equal(profile.glob, undefined);
   assert.equal(profile.grep, undefined);
   assert.deepEqual(profile.astGrep, { enabled: true });
@@ -54,6 +54,9 @@ try {
     "  task: \"@smol\"",
     "advisor:",
     "  enabled: true",
+    "task:",
+    "  maxConcurrency: 10",
+    "  maxRecursionDepth: 1",
     "glob:",
     "  enabled: true",
     "grep:",
@@ -120,7 +123,7 @@ fi
   assert.equal(installed.advisor.enabled, true);
   assert.equal(installed.unmanaged.apiKey, "do-not-log-or-replace");
   assert.equal(installed.unmanaged.keep, true);
-  assert.equal(installed.task.maxConcurrency, 10);
+  assert.equal(installed.task, undefined);
   assert.equal(installed.glob, undefined);
   assert.equal(installed.grep, undefined);
   assert.equal(installed.astGrep.enabled, true);
@@ -136,6 +139,9 @@ fi
   writeFile(customTaskConfig, [
     "modelRoles:",
     "  task: openai/gpt-5.6-sol:high",
+    "task:",
+    "  maxConcurrency: 4",
+    "  maxRecursionDepth: 3",
     "glob:",
     "  enabled: false",
     "",
@@ -153,6 +159,8 @@ fi
     "openai/gpt-5.6-sol:high",
   );
   assert.equal(preservedCustomConfig.glob.enabled, false);
+  assert.equal(preservedCustomConfig.task.maxConcurrency, 4);
+  assert.equal(preservedCustomConfig.task.maxRecursionDepth, 3);
 
   const fallbackRoot = path.join(testRoot, "fallback");
   const fallbackConfig = path.join(fallbackRoot, "config.yml");
