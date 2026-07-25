@@ -15,6 +15,7 @@ These instructions apply to every workspace opened in OpenCode. Read the workspa
 - Do work inline for quick, focused tasks that do not need specialist knowledge.
 - Delegate only when a child adds a useful permission boundary, independent context, parallelism, or a reviewed domain procedure. Do not fill available capacity, duplicate the controller's investigation, or give concurrent writers overlapping files. A specialist name is not evidence of specialist capability.
 - Parallelize independent work in distinct domains. Native OpenCode Task agents share the active workspace, so never assign overlapping writes and keep the controller responsible for integration.
+- When `HERDR_ENV=1`, ALWAYS split a dedicated sibling Herdr pane for each subagent before it starts. Preserve the controller's pane and working directory, keep focus unchanged, and use Herdr agent controls rather than the native Task tool.
 - Let subagents establish their own narrow evidence or implementation boundary from the request and repository. Specialists provide isolation and a second context, not authority to replace source and test evidence.
 - Use `evidence_analyst` only for an exact claim checklist and artifacts produced by the controller. Run deterministic validation in the controller.
 
