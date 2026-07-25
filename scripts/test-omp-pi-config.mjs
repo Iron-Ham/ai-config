@@ -31,6 +31,8 @@ try {
     smol: "openai/gpt-5.6-luna:high",
     slow: "openai/gpt-5.6-sol:high",
     tiny: "openai/gpt-5.6-luna:low",
+    task: "openai/gpt-5.6-luna:high",
+    commit: "baseten/moonshotai/Kimi-K2.7-Code",
     advisor: "openai/gpt-5.6-sol:high",
   });
   assert.equal(profile.hideThinkingBlock, true);
@@ -51,6 +53,7 @@ try {
   writeFile(configPath, [
     "modelRoles:",
     "  advisor: anthropic/claude-sonnet:high",
+    "  commit: anthropic/claude-sonnet:high",
     "  vision: openai/gpt-4o:high",
     "  task: \"@smol\"",
     "advisor:",
@@ -119,8 +122,8 @@ fi
 
   const installed = Bun.YAML.parse(fs.readFileSync(configPath, "utf8"));
   assert.equal(installed.modelRoles.advisor, "openai/gpt-5.6-sol:high");
-  assert.equal(installed.modelRoles.vision, "openai/gpt-4o:high");
-  assert.equal(installed.modelRoles.task, undefined);
+  assert.equal(installed.modelRoles.commit, "baseten/moonshotai/Kimi-K2.7-Code");
+  assert.equal(installed.modelRoles.task, "openai/gpt-5.6-luna:high");
   assert.equal(installed.advisor.enabled, true);
   assert.equal(installed.hideThinkingBlock, true);
   assert.equal(installed.unmanaged.apiKey, "do-not-log-or-replace");
@@ -158,7 +161,7 @@ fi
   const preservedCustomConfig = Bun.YAML.parse(fs.readFileSync(customTaskConfig, "utf8"));
   assert.equal(
     preservedCustomConfig.modelRoles.task,
-    "openai/gpt-5.6-sol:high",
+    "openai/gpt-5.6-luna:high",
   );
   assert.equal(preservedCustomConfig.glob.enabled, false);
   assert.equal(preservedCustomConfig.task.maxConcurrency, 4);

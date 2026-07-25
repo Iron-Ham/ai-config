@@ -45,10 +45,6 @@ const profile = readConfig(profilePath);
 const current = readConfig(configPath);
 const merged = mergeObjects(current, profile);
 
-// Remove the prior managed task-to-smol alias without overwriting custom task roles.
-if (merged.modelRoles?.task === "@smol") {
-  delete merged.modelRoles.task;
-}
 // Remove the legacy managed task limits without changing custom task settings.
 if (
   merged.task !== null &&
