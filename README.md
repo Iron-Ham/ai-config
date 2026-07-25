@@ -81,7 +81,7 @@ Use `opencode --no-auto` or `opencode run --no-auto ...` when a session must req
 
 ## Model And Delegation Policy
 
-The primary model and `plan` default to GPT-5.6 Terra without a fixed reasoning variant. `build`, `general`, `explore`, and the reviewed specialists inherit the invoking controller's model unless a developer explicitly sets an override in `model-routing.config.local.json`.
+The primary model, `plan`, and `explore` default to GPT-5.6 Terra without a fixed reasoning variant. Explore is pinned to that baseline so a premium invoking model does not propagate to routine reconnaissance. `build`, `general`, and the model-inheriting reviewed specialists use the invoking controller's model unless a developer explicitly sets an override in `model-routing.config.local.json`.
 
 `luna_implementer` is the fixed exception: an opt-in, subagent-only GPT-5.6 Luna High lane for small, isolated, reversible changes. It is not an automatic route or a command. It autonomously discovers the narrow source boundary and focused validation command from the request and repository instructions. Luna can run repository-local validation, including platform-native tooling and project-specific CLIs, under the same project-tooling trust boundary as other code implementers. The controller retains task decomposition, integration, and final review.
 

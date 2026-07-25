@@ -59,7 +59,6 @@ const inheritedModelAgentNames = new Set([
   "database_optimizer",
   "evidence_analyst",
   "evidence_reader",
-  "explore",
   "general",
   "security_engineer",
   "software_architect",
@@ -601,6 +600,8 @@ function mergeOpenCodeConfig(modelRouting) {
   delete merged.agent?.build?.options;
   delete merged.agent?.general?.variant;
   delete merged.agent?.general?.options;
+  delete merged.agent?.explore?.variant;
+  delete merged.agent?.explore?.options;
   delete merged.agent?.plan?.variant;
   delete merged.agent?.plan?.options;
   delete merged.agent?.compaction?.variant;

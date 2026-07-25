@@ -69,6 +69,8 @@ try {
       },
       explore: {
         model: "anthropic/claude-sonnet-5-default-pinned",
+        variant: "max",
+        options: { reasoningEffort: "max" },
         permission: { bash: "allow", edit: "allow" },
       },
       compaction: { model: "anthropic/claude-sonnet-5" },
@@ -190,8 +192,30 @@ try {
   assert.equal(merged.agent.explore.permission.websearch, "allow");
   assert.equal(merged.agent.explore.permission.edit, "deny");
   assert.equal(merged.agent.explore.permission["*"], "deny");
-  assert.equal(merged.agent.explore.model, undefined);
+  assert.equal(merged.agent.explore.model, "openai/gpt-5.6-terra");
+  assert.equal(merged.agent.explore.variant, undefined);
+  assert.equal(merged.agent.explore.options, undefined);
   assert.equal(merged.agent.explore.steps, 100);
+  const exploreDebug = Bun.spawnSync([
+    "opencode",
+    "debug",
+    "agent",
+    "explore",
+    "--pure",
+  ], {
+    cwd: os.tmpdir(),
+    env: {
+      ...process.env,
+      XDG_CONFIG_HOME: isolatedXdgConfigHome,
+      OPENCODE_CONFIG_DIR: configDir,
+    },
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  assert.equal(exploreDebug.exitCode, 0, exploreDebug.stderr.toString());
+  const explore = JSON.parse(exploreDebug.stdout.toString());
+  assert.equal(explore.model.providerID, "openai");
+  assert.equal(explore.model.modelID, "gpt-5.6-terra");
   assert.equal(merged.agent.compaction.model, undefined);
   assert.equal(merged.lsp, true);
   assert.deepEqual(merged.tool_output, { max_lines: 300, max_bytes: 16384 });
@@ -397,6 +421,7 @@ try {
       agents: {
         build: "anthropic/claude-sonnet-5-default-pinned",
         compaction: "openai/gpt-5.6-luna-xhigh-pinned",
+        explore: "anthropic/claude-fable-5",
         general: "anthropic/claude-fable-5",
         plan: "openai/gpt-5.6-terra-xhigh-pinned",
         advisor_reviewer: "anthropic/claude-fable-5",
@@ -417,6 +442,7 @@ try {
         agents: {
         build: "anthropic/claude-sonnet-5",
         compaction: "openai/gpt-5.6-luna",
+        explore: "anthropic/claude-fable-5",
         general: "anthropic/claude-fable-5",
         plan: "openai/gpt-5.6-terra",
          software_architect: "openai/gpt-5.6-luna",
