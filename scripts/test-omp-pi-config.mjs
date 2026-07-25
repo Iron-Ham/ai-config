@@ -32,8 +32,9 @@ try {
     task: "@smol",
     slow: "openai/gpt-5.6-sol:high",
     tiny: "openai/gpt-5.6-luna:low",
+    advisor: "openai/gpt-5.6-sol:high",
   });
-  assert.deepEqual(profile.advisor, { enabled: false });
+  assert.deepEqual(profile.advisor, { enabled: true });
   assert.deepEqual(profile.task, { maxConcurrency: 10, maxRecursionDepth: 1 });
   assert.deepEqual(profile.glob, { enabled: true });
   assert.deepEqual(profile.grep, { enabled: true });
@@ -107,9 +108,9 @@ fi
   assert.doesNotMatch(output, /do-not-log-or-replace|apiKey/i);
 
   const installed = Bun.YAML.parse(fs.readFileSync(configPath, "utf8"));
-  assert.equal(installed.modelRoles.advisor, undefined);
+  assert.equal(installed.modelRoles.advisor, "openai/gpt-5.6-sol:high");
   assert.equal(installed.modelRoles.vision, "openai/gpt-4o:high");
-  assert.equal(installed.advisor.enabled, false);
+  assert.equal(installed.advisor.enabled, true);
   assert.equal(installed.unmanaged.apiKey, "do-not-log-or-replace");
   assert.equal(installed.unmanaged.keep, true);
   assert.equal(installed.task.maxConcurrency, 10);

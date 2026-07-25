@@ -45,11 +45,6 @@ const profile = readConfig(profilePath);
 const current = readConfig(configPath);
 const merged = mergeObjects(current, profile);
 
-// Advisor assignment is intentionally unassigned. Other user-defined roles stay intact.
-if (merged.modelRoles && typeof merged.modelRoles === "object") {
-  delete merged.modelRoles.advisor;
-}
-
 // OMP 17 uses xdev for discoverable tools. Remove keys emitted by an earlier
 // profile draft because this version's schema does not recognize them.
 if (merged.tools && typeof merged.tools === "object") {

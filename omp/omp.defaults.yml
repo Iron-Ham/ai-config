@@ -8,8 +8,9 @@ modelRoles:
   task: "@smol"
   slow: openai/gpt-5.6-sol:high
   tiny: openai/gpt-5.6-luna:low
+  advisor: openai/gpt-5.6-sol:high
 advisor:
-  enabled: false
+  enabled: true
 task:
   maxConcurrency: 10
   maxRecursionDepth: 1
