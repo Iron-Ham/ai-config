@@ -5,7 +5,6 @@ modelRoles:
   default: openai/gpt-5.6-terra:xhigh
   plan: openai/gpt-5.6-terra:xhigh
   smol: openai/gpt-5.6-luna:high
-  task: "@smol"
   slow: openai/gpt-5.6-sol:high
   tiny: openai/gpt-5.6-luna:low
   advisor: openai/gpt-5.6-sol:high

@@ -45,6 +45,11 @@ const profile = readConfig(profilePath);
 const current = readConfig(configPath);
 const merged = mergeObjects(current, profile);
 
+// Remove the prior managed task-to-smol alias without overwriting custom task roles.
+if (merged.modelRoles?.task === "@smol") {
+  delete merged.modelRoles.task;
+}
+
 // OMP 17 uses xdev for discoverable tools. Remove keys emitted by an earlier
 // profile draft because this version's schema does not recognize them.
 if (merged.tools && typeof merged.tools === "object") {
