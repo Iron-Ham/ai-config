@@ -56,6 +56,11 @@ try {
         variant: "max",
         steps: 3,
       },
+      sol_high: {
+        model: "openai/gpt-5.6-luna",
+        variant: "max",
+        steps: 3,
+      },
       evidence_reader: { model: "openai/gpt-5.6-sol" },
       plan: {
         variant: "max",
@@ -210,6 +215,9 @@ try {
   assert.equal(merged.agent.luna_reader.model, "openai/gpt-5.6-luna");
   assert.equal(merged.agent.luna_reader.variant, "medium");
   assert.equal(merged.agent.luna_reader.steps, 100);
+  assert.equal(merged.agent.sol_high.model, "openai/gpt-5.6-sol");
+  assert.equal(merged.agent.sol_high.variant, "high");
+  assert.equal(merged.agent.sol_high.steps, 100);
   assert.equal(merged.agent.evidence_reader.model, undefined);
   assert.equal(merged.agent.evidence_reader.steps, 100);
   assert.equal(merged.agent.ultra, undefined);

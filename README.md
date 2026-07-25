@@ -85,6 +85,8 @@ The primary model and `plan` default to GPT-5.6 Terra without a fixed reasoning 
 
 `luna_implementer` is the fixed exception: an opt-in, subagent-only GPT-5.6 Luna High lane for small, isolated, reversible changes. It is not an automatic route or a command. It autonomously discovers the narrow source boundary and focused validation command from the request and repository instructions. Luna can run repository-local validation, including platform-native tooling and project-specific CLIs, under the same project-tooling trust boundary as other code implementers. The controller retains task decomposition, integration, and final review.
 
+`sol_high` is an opt-in, subagent-only GPT-5.6 Sol High lane for complex implementation slices that warrant frontier reasoning. It is not an automatic route, fallback, or command. It establishes the delegated source boundary, relevant invariants, integration points, and focused validation before changing code. The controller retains task decomposition, integration, and final review.
+
 `luna_reader` is a separate opt-in, subagent-only GPT-5.6 Luna Medium lane for an independent source-research workstream. It is not an automatic `explore` route or a command. It establishes an investigation and practical search boundary from the request, then returns a compact source-grounded `path:line` evidence digest while the controller continues non-overlapping work or needs the context compression.
 
 `evidence_reader` is the analogous opt-in, model-inheriting evidence-gathering subagent. It is for broad bounded source and artifact research, not final validation; `evidence_analyst` remains restricted to an exact claim checklist and already-produced artifacts.

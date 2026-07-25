@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "policy_version": 5,
+  "policy_version": 6,
   "changelog": [
     {
       "policy_version": 1,
@@ -31,6 +31,12 @@
       "date": "2026-07-22",
       "summary": "Add opt-in Luna and model-inheriting reader subagents without changing Explore or controller routing.",
       "evidence_ref": "reports/opencode-model-routing/benchmark/reader-startup-crossover.json"
+    },
+    {
+      "policy_version": 6,
+      "date": "2026-07-25",
+      "summary": "Add an explicit Sol High premium implementation subagent without changing controller routing.",
+      "evidence_ref": "reports/opencode-model-routing/report.md"
     }
   ],
   "routes": [
