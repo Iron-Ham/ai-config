@@ -13,10 +13,6 @@ advisor:
 task:
   maxConcurrency: 10
   maxRecursionDepth: 1
-glob:
-  enabled: true
-grep:
-  enabled: true
 astGrep:
   enabled: true
 tools:

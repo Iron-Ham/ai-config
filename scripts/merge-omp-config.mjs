@@ -49,6 +49,20 @@ const merged = mergeObjects(current, profile);
 if (merged.modelRoles?.task === "@smol") {
   delete merged.modelRoles.task;
 }
+// Context-tool configuration is owned by OpenCode. Preserve any OMP-specific
+// setting beyond an enable-only override.
+for (const toolName of ["glob", "grep"]) {
+  const toolConfig = merged[toolName];
+  if (
+    toolConfig !== null &&
+    typeof toolConfig === "object" &&
+    !Array.isArray(toolConfig) &&
+    toolConfig.enabled === true &&
+    Object.keys(toolConfig).length === 1
+  ) {
+    delete merged[toolName];
+  }
+}
 
 // OMP 17 uses xdev for discoverable tools. Remove keys emitted by an earlier
 // profile draft because this version's schema does not recognize them.
