@@ -203,7 +203,6 @@ const inheritedModelAgents = [
   "database_optimizer",
   "evidence_analyst",
   "evidence_reader",
-  "explore",
   "general",
   "security_engineer",
   "software_architect",
@@ -697,6 +696,7 @@ for (const name of ["general", "database_optimizer", "evidence_analyst"]) {
 
 const expectedModels = {
   plan: ["openai", "gpt-5.6-terra"],
+  explore: ["openai", "gpt-5.6-terra"],
 };
 if (modelRouting.agents?.compaction) {
   expectedModels.compaction = undefined;

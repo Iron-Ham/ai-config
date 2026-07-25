@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "policy_version": 6,
+  "policy_version": 7,
   "changelog": [
     {
       "policy_version": 1,
@@ -36,6 +36,12 @@
       "policy_version": 6,
       "date": "2026-07-25",
       "summary": "Add an explicit Sol High premium implementation subagent without changing controller routing.",
+      "evidence_ref": "reports/opencode-model-routing/report.md"
+    },
+    {
+      "policy_version": 7,
+      "date": "2026-07-25",
+      "summary": "Pin Explore to the existing Terra baseline instead of inheriting a potentially premium invoking model.",
       "evidence_ref": "reports/opencode-model-routing/report.md"
     }
   ],

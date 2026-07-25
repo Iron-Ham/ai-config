@@ -2,7 +2,7 @@
 
 ## Status
 
-This document defines policy contract version 6 for an observe-only control
+This document defines policy contract version 7 for an observe-only control
 plane. The resolver may report a selected policy route, but it must not set an
 OpenCode model, provider, reasoning effort, fallback, agent permission, or
 default.
@@ -37,6 +37,14 @@ optional runtime metadata and a role name is never evidence of model quality.
 
 `/ultra` is a Build command template, not a policy invocation mode. The policy
 resolver remains Build-only and rejects `ultra` as an invocation mode.
+
+## Static Explore Default
+
+`explore` is fixed to `openai/gpt-5.6-terra` without a reasoning variant. This
+managed agent default keeps read-only reconnaissance on the existing Terra
+baseline when an invoking session uses a premium model. It is not a resolver
+route or automatic task classifier, and a developer may still set an explicit
+Explore override in `model-routing.config.local.json`.
 
 ## Explicit Luna Implementation Subagent
 
@@ -86,10 +94,10 @@ practical search boundary from the request, then returns a compact
 source-grounded `path:line` evidence digest rather than implementation advice.
 
 The reader cannot edit, delegate, ask questions, or use an advisor. It is not
-an automatic Explore route, fallback, or model-branded command. The
+an automatic Luna Explore route, fallback, or model-branded command. The
 preliminary two-repeat exact-file trial supports a cost hypothesis only;
 production-shaped startup and broader-reader trials remain required before
-changing general Explore routing.
+selecting Luna as the general Explore default.
 
 ## Evidence Reader
 
