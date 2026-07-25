@@ -80,7 +80,7 @@ for (let index = 1; index <= 10; index += 1) {
   await startDefault(`total-${index}`);
   await defaultHooks.event({ event: { type: "session.status", properties: { sessionID: `default-child-total-${index}`, status: { type: "idle" } } } });
 }
-await assert.rejects(() => startDefault("total-twenty-first"), /total limit/);
+await assert.rejects(() => startDefault("total-twenty-first"), /distinct-session limit/);
 
 const idleEventHooks = await createDelegationGuard({ max_concurrent: 1, max_total: 2 });
 async function startIdleEvent(callID) {
@@ -112,7 +112,7 @@ await hooks.event({ event: { type: "session.status", properties: { sessionID: "c
 await start("three");
 await hooks.event({ event: { type: "session.status", properties: { sessionID: "child-two", status: { type: "idle" } } } });
 await hooks.event({ event: { type: "session.status", properties: { sessionID: "child-three", status: { type: "idle" } } } });
-await assert.rejects(() => start("four"), /total limit/);
+await assert.rejects(() => start("four"), /distinct-session limit/);
 
 const foregroundHooks = await createDelegationGuard({ max_concurrent: 1, max_total: 2 });
 async function completeForeground(callID) {
@@ -129,7 +129,7 @@ const metadataHooks = await createDelegationGuard({ max_concurrent: 1, max_total
 await metadataHooks["tool.execute.before"]({ tool: "task", sessionID: "metadata-parent", callID: "metadata" }, { args: { subagent_type: "explore", prompt: "Inspect src/cli/ and return the exact source boundary." } });
 await metadataHooks["tool.execute.after"]({ tool: "task", sessionID: "metadata-parent", callID: "metadata" }, { output: "task started", metadata: { sessionId: "metadata-child" } });
 await metadataHooks.event({ event: { type: "session.status", properties: { sessionID: "metadata-child", status: { type: "idle" } } } });
-await assert.rejects(() => metadataHooks["tool.execute.before"]({ tool: "task", sessionID: "metadata-parent", callID: "after-metadata" }, { args: { subagent_type: "explore", prompt: "Inspect src/cli/ and return the exact source boundary." } }), /total limit/);
+await assert.rejects(() => metadataHooks["tool.execute.before"]({ tool: "task", sessionID: "metadata-parent", callID: "after-metadata" }, { args: { subagent_type: "explore", prompt: "Inspect src/cli/ and return the exact source boundary." } }), /distinct-session limit/);
 
 const nestedHooks = await createDelegationGuard({ max_concurrent: 2, max_total: 2 });
 // Managed subagent_depth: 1 prevents nested native Task calls in normal operation.
@@ -139,6 +139,6 @@ await nestedHooks["tool.execute.before"]({ tool: "task", sessionID: "nested-chil
 await nestedHooks["tool.execute.after"]({ tool: "task", sessionID: "nested-child", callID: "nested-grandchild" }, { output: JSON.stringify({ task_id: "nested-grandchild" }) });
 await nestedHooks.event({ event: { type: "session.status", properties: { sessionID: "nested-child", status: { type: "idle" } } } });
 await nestedHooks.event({ event: { type: "session.status", properties: { sessionID: "nested-grandchild", status: { type: "idle" } } } });
-await assert.rejects(() => nestedHooks["tool.execute.before"]({ tool: "task", sessionID: "nested-parent", callID: "nested-after" }, { args: { subagent_type: "explore", prompt: "Inspect src/cli/ and return the exact source boundary." } }), /total limit/);
+await assert.rejects(() => nestedHooks["tool.execute.before"]({ tool: "task", sessionID: "nested-parent", callID: "nested-after" }, { args: { subagent_type: "explore", prompt: "Inspect src/cli/ and return the exact source boundary." } }), /distinct-session limit/);
 
 console.log("OK     OpenCode delegation guard");

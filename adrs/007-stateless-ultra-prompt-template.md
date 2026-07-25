@@ -24,10 +24,13 @@ state, token budget, or Goal-mode continuation loop. Ordinary OpenCode
 compaction may continue a context-limited turn without creating persistent Goal
 state. Selective delegation is guided by evidence rather than
 available-capacity fan-out. Native `Task` calls are bounded at 10 concurrent
-and 20 total child tasks per root session tree, with `subagent_depth: 1`
-preventing recursive native Task delegation. Controllers dispatch specialists
-directly. The concurrency ceiling is a safety boundary, not a delegation
-target, and does not cap plugin-created sessions or other machine-wide APIs.
+and 20 distinct child sessions per root session tree, with `subagent_depth: 1`
+preventing recursive native Task delegation.
+Reusing a returned `task_id` continues an existing child without consuming the
+distinct-session allowance.
+Controllers dispatch specialists directly. The concurrency ceiling is a safety
+boundary, not a delegation target, and does not cap plugin-created sessions or
+other machine-wide APIs.
 
 This ADR supersedes ADR 006 only for OpenCode's built-in compaction
 autocontinuation. It does not restore the retired Goal-mode lifecycle,

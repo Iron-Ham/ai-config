@@ -22,7 +22,7 @@ These instructions apply to every workspace opened in OpenCode. Read the workspa
 
 - Use `build` for durable production implementation, `plan` for read-only planning, `general` only for an independent, non-overlapping writable slice, and `explore` for bounded read-only discovery.
 - Use `code_reviewer`, `software_architect`, `security_engineer`, `accessibility_auditor`, and `database_optimizer` only for bounded independent review. They inherit the invoking model unless explicitly overridden locally.
-- Native `Task` delegation permits at most 10 concurrent and 20 total child tasks per root session tree. This is a safety bound, not a delegation target. Primary controllers dispatch specialists directly; native delegation remains one level.
+- Native `Task` delegation permits at most 10 concurrent calls and 20 distinct child sessions per root session tree. Reuse a returned `task_id` to continue an existing child without consuming the distinct-session allowance. This is a safety bound, not a delegation target. Primary controllers dispatch specialists directly; native delegation remains one level.
 - When a tool or MCP call returns multiple records, aggregate or filter the result before presenting it to the model. Return only fields needed for the decision, preserve identifiers needed for follow-up, and keep raw output available only when a specific record must be inspected.
 - External advisor access is disabled by default and is never automatic; do not forward or reconstruct the parent transcript.
 - Do not infer a reviewer's quality from its role or model. Reconcile every review against source and verification evidence.

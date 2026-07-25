@@ -13,7 +13,7 @@ For substantial work, derive concrete deliverables and identify proportionate ev
 
 Delegate selectively. Use a child only for an independent, bounded question or non-overlapping slice where parallel work materially improves speed or quality. Do not fill available capacity, duplicate the controller's investigation, launch broad review panels, or give concurrent writers the same files. Start with the fewest suitable children. Use reviewed specialists only with a concrete boundary. The controller owns integration, verification, and the final result.
 
-The managed native Task ceiling is 10 concurrent and 20 total child tasks per root session. It is a safety bound, not a target. Delegation remains one level; dispatch needed specialists directly from the controller.
+The managed native Task ceiling is 10 concurrent calls and 20 distinct child sessions per root session. Reuse a returned `task_id` to continue an existing child without consuming the distinct-session allowance. It is a safety bound, not a target. Delegation remains one level; dispatch needed specialists directly from the controller.
 
 This command creates no durable objective or Goal-mode lifecycle. Do not create Goal state, add a token budget, schedule background work, or treat an incomplete response as authority to create a persistent retry or continuation loop. Ordinary OpenCode compaction may continue a context-limited turn. If blocked or unable to finish, report verified progress, remaining work, and the exact blocker.
 
