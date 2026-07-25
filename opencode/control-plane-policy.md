@@ -2,7 +2,7 @@
 
 ## Status
 
-This document defines policy contract version 5 for an observe-only control
+This document defines policy contract version 6 for an observe-only control
 plane. The resolver may report a selected policy route, but it must not set an
 OpenCode model, provider, reasoning effort, fallback, agent permission, or
 default.
@@ -25,9 +25,10 @@ The managed route set contains one ordinary controller execution route:
 | --- | --- | --- | --- |
 | Build | `build-terra` | `openai/gpt-5.6-terra` | Current managed Build baseline; no fixed reasoning variant. |
 
-`luna_implementer`, `luna_reader`, and `evidence_reader` are explicit managed
-subagents rather than adapter routes. They do not alter the controller's
-effective route or permit the resolver to choose a model from task text.
+`luna_implementer`, `sol_high`, `luna_reader`, and `evidence_reader` are
+explicit managed subagents rather than adapter routes. They do not alter the
+controller's effective route or permit the resolver to choose a model from task
+text.
 
 Provider/model fallback, automatic review, model-branded convenience commands,
 and automatic role-based route selection are outside this contract. A route is always a
@@ -56,6 +57,25 @@ model-branded command, fallback, or automatic role selection. The controller
 retains eligibility decisions, task decomposition, integration, and final
 verification. The evidence supports this limited use only; it does not make
 Luna a general production implementation default.
+
+## Explicit Sol High Implementation Subagent
+
+`sol_high` is fixed to `openai/gpt-5.6-sol` with the `high` reasoning variant.
+It is an opt-in subagent for complex implementation slices whose cross-cutting
+invariants or technical uncertainty warrant frontier reasoning. The controller
+must retain task decomposition, integration, and final verification.
+
+The agent establishes its delegated source boundary, relevant invariants,
+integration points, and focused validation from repository instructions and
+source. It may edit code and run repository-local validation through
+platform-native tooling or project-specific CLIs, while standard approval gates
+apply to direct destructive commands. It cannot delegate, ask questions,
+commit, push, alter Git history, deploy, or mutate data.
+
+This lane is not an automatic route, fallback, or model-branded command. It
+does not change Build, Plan, Explore, or controller routing. The current
+evidence supports explicit premium implementation selection only; it does not
+make Sol a general implementation default.
 
 ## Explicit Luna Reader Subagent
 
