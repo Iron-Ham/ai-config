@@ -28,7 +28,7 @@ try {
   assert.deepEqual(profile.modelRoles, {
     default: "openai/gpt-5.6-terra:xhigh",
     plan: "openai/gpt-5.6-terra:xhigh",
-    smol: "openai/gpt-5.6-luna:high",
+    smol: "openai/gpt-5.6-luna:medium",
     slow: "openai/gpt-5.6-sol:high",
     tiny: "openai/gpt-5.6-luna:low",
     task: "openai/gpt-5.6-luna:high",
@@ -55,6 +55,7 @@ try {
     "  advisor: anthropic/claude-sonnet:high",
     "  commit: anthropic/claude-sonnet:high",
     "  vision: openai/gpt-4o:high",
+    "  smol: openai/gpt-5.6-sol:high",
     "  task: \"@smol\"",
     "advisor:",
     "  enabled: true",
@@ -123,6 +124,7 @@ fi
   const installed = Bun.YAML.parse(fs.readFileSync(configPath, "utf8"));
   assert.equal(installed.modelRoles.advisor, "openai/gpt-5.6-sol:high");
   assert.equal(installed.modelRoles.commit, "baseten/moonshotai/Kimi-K2.7-Code");
+  assert.equal(installed.modelRoles.smol, "openai/gpt-5.6-luna:medium");
   assert.equal(installed.modelRoles.task, "openai/gpt-5.6-luna:high");
   assert.equal(installed.advisor.enabled, true);
   assert.equal(installed.hideThinkingBlock, true);
