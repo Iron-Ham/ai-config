@@ -5,11 +5,61 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+const managedAgentNames = [
+  "accessibility_auditor",
+  "code_reviewer",
+  "database_optimizer",
+  "evidence_analyst",
+  "evidence_reader",
+  "security_engineer",
+  "software_architect",
+];
+const allowedAgentFrontmatterKeys = new Set([
+  "name",
+  "description",
+  "tools",
+  "spawns",
+  "model",
+  "thinkingLevel",
+  "thinking",
+  "output",
+  "blocking",
+  "autoloadSkills",
+  "readSummarize",
+  "prewalk",
+]);
+
+function readAgentDefinition(filePath, expectedName) {
+  const content = fs.readFileSync(filePath, "utf8");
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
+  assert.ok(match, `${filePath} must start with OMP frontmatter`);
+  const frontmatter = Bun.YAML.parse(match[1]);
+  assert.equal(frontmatter.name, expectedName);
+  assert.equal(typeof frontmatter.description, "string");
+  assert.ok(frontmatter.description.trim());
+  assert.ok(frontmatter.tools);
+  for (const key of Object.keys(frontmatter)) {
+    assert.equal(
+      allowedAgentFrontmatterKeys.has(key),
+      true,
+      `${filePath} uses unsupported OMP frontmatter key ${key}`,
+    );
+  }
+  assert.doesNotMatch(
+    match[1],
+    /^(?:permission|mode|external_directory|text_read|webfetch|websearch)\s*:/m,
+  );
+  assert.ok(content.slice(match[0].length).trim(), `${filePath} must contain agent guidance`);
+  return { content, frontmatter };
+}
+
 const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const testRoot = fs.mkdtempSync(path.join(os.tmpdir(), "omp-config-test-"));
 const homeDir = path.join(testRoot, "home");
 const configDir = path.join(homeDir, ".omp", "agent");
+const agentsDir = path.join(configDir, "agents");
 const configPath = path.join(configDir, "config.yml");
+const unmanagedAgentPath = path.join(agentsDir, "user_local.md");
 const stubBin = path.join(testRoot, "bin");
 const callLog = path.join(testRoot, "omp-calls.log");
 const miseLog = path.join(testRoot, "mise-calls.log");
@@ -21,6 +71,16 @@ function writeFile(filePath, content, mode = 0o600) {
 }
 
 try {
+  const sourceAgentDefinitions = new Map();
+  for (const name of managedAgentNames) {
+    const sourcePath = path.join(repoRoot, "omp", "agents", `${name}.md`);
+    const sourceStat = fs.lstatSync(sourcePath, { throwIfNoEntry: false });
+    assert.ok(sourceStat, `managed OMP agent source is missing: ${sourcePath}`);
+    assert.equal(sourceStat.isSymbolicLink(), false, `${sourcePath} must not be a symlink`);
+    assert.equal(sourceStat.isFile(), true, `${sourcePath} must be a regular file`);
+    sourceAgentDefinitions.set(name, readAgentDefinition(sourcePath, name));
+  }
+
   const profile = Bun.YAML.parse(
     fs.readFileSync(path.join(repoRoot, "omp", "omp.defaults.yml"), "utf8"),
   );
@@ -73,6 +133,8 @@ try {
     "  keep: true",
     "",
   ].join("\n"));
+  const unmanagedAgentContent = "unmanaged user agent\n";
+  writeFile(unmanagedAgentPath, unmanagedAgentContent, 0o640);
   fs.mkdirSync(stubBin, { recursive: true });
   writeFile(path.join(stubBin, "mise"), `#!/usr/bin/env bash
 set -eu
@@ -137,6 +199,25 @@ fi
   assert.equal(installed.tools.xdev, true);
   assert.equal(installed.tools.discoveryMode, undefined);
   assert.equal(fs.statSync(configPath).mode & 0o077, 0);
+  assert.equal(fs.readFileSync(unmanagedAgentPath, "utf8"), unmanagedAgentContent);
+  assert.equal(fs.lstatSync(unmanagedAgentPath).mode & 0o777, 0o640);
+  for (const name of managedAgentNames) {
+    const installedAgentPath = path.join(agentsDir, `${name}.md`);
+    const installedStat = fs.lstatSync(installedAgentPath, { throwIfNoEntry: false });
+    assert.ok(installedStat, `managed OMP agent was not installed: ${name}`);
+    assert.equal(installedStat.isSymbolicLink(), false);
+    assert.equal(installedStat.isFile(), true);
+    assert.equal(installedStat.mode & 0o077, 0);
+    const installedDefinition = readAgentDefinition(installedAgentPath, name);
+    assert.equal(installedDefinition.content, sourceAgentDefinitions.get(name).content);
+    assert.deepEqual(
+      installedDefinition.frontmatter,
+      sourceAgentDefinitions.get(name).frontmatter,
+    );
+  }
+  for (const name of ["luna_implementer", "luna_reader", "sol_high"]) {
+    assert.equal(fs.existsSync(path.join(agentsDir, `${name}.md`)), false);
+  }
   assert.equal(fs.readdirSync(path.join(configDir, "backups", "setup-omp")).length, 1);
   const calls = fs.readFileSync(callLog, "utf8");
   assert.match(calls, /config get modelRoles/);
@@ -199,6 +280,12 @@ fi
   assert.equal(fallbackInstalled.modelRoles.default, "openai/gpt-5.6-terra:xhigh");
   assert.equal(fallbackInstalled.hideThinkingBlock, true);
 
+  const rollbackAgentContents = new Map();
+  for (const name of managedAgentNames) {
+    const content = `pre-failure managed agent: ${name}\n`;
+    rollbackAgentContents.set(name, content);
+    writeFile(path.join(agentsDir, `${name}.md`), content, 0o640);
+  }
   const rollbackConfig = "unmanaged:\n  preserved: before-failure\n";
   writeFile(configPath, rollbackConfig);
   const failedUpdate = Bun.spawnSync(["bash", path.join(repoRoot, "setup-omp.sh")], {
@@ -219,6 +306,13 @@ fi
   });
   assert.notEqual(failedUpdate.exitCode, 0);
   assert.equal(fs.readFileSync(configPath, "utf8"), rollbackConfig);
+  assert.match(failedUpdate.stderr.toString(), /ROLLBACK OMP setup failed/);
+  for (const name of managedAgentNames) {
+    const restoredPath = path.join(agentsDir, `${name}.md`);
+    assert.equal(fs.readFileSync(restoredPath, "utf8"), rollbackAgentContents.get(name));
+    assert.equal(fs.lstatSync(restoredPath).mode & 0o777, 0o640);
+  }
+  assert.equal(fs.readFileSync(unmanagedAgentPath, "utf8"), unmanagedAgentContent);
 
   const missingConfig = path.join(testRoot, "missing", "config.yml");
   const failedCreate = Bun.spawnSync(["bash", path.join(repoRoot, "setup-omp.sh")], {
