@@ -24,7 +24,7 @@ brew install ripgrep ast-grep
 
 `omp/omp.defaults.yml` is the source of truth for the managed global profile. It sets global model roles (`default`, `plan`, `smol`, `slow`, `tiny`, `task`, `commit`, and `advisor`), enables the advisor and AST-grep integration, hides thinking blocks, and enables OMP's `xdev` tools with built-in documentation. The seven managed read-only agent definitions are sourced from `omp/agents/` and installed under the selected OMP agent directory. They contain no credentials; the merge keeps unrelated user configuration, custom task settings, and unmanaged agent definitions intact.
 
-Use this dispatcher when work inside the local Notion checkout should run through its local wrapper; all other directories use global OMP. Explicit approval flags are preserved, and unattended invocations default to `--yolo`.
+Use the `pi` and `omp` dispatchers when work should run through the local Notion wrapper. `pi` uses local Pi only inside the Notion checkout; `omp` forces that local path without changing the caller's directory. Explicit approval flags are preserved, and unattended invocations default to `--yolo`.
 
 ```zsh
 _run_notion_local_or_command() {
@@ -54,14 +54,48 @@ pi() {
     args+=(--yolo)
   fi
 
-  if [[ "$PWD" == "$notion_next_dir" || "$PWD" == "$notion_next_dir/"* ]]; then
+  if [[ "${OMP_LOCAL_PI:-}" == true || "$PWD" == "$notion_next_dir" || "$PWD" == "$notion_next_dir/"* ]]; then
     _run_notion_local_or_command pi "${args[@]}"
     return
   fi
 
   command omp "${args[@]}"
 }
+
+omp() {
+  local OMP_LOCAL_PI=true
+  pi "$@"
+}
 ```
+
+`omp` invokes the existing `pi()` function with a function-local `OMP_LOCAL_PI=true`, so `pi` uses `notion local pi` while retaining the original working directory and every argument boundary.
+
+### Delegating through Herdr
+
+For a Herdr-managed OMP subagent, create a sibling pane with the harness directory, then start and prompt the recognized agent:
+
+```bash
+herdr pane split --current --direction right --cwd "$PWD" --no-focus
+herdr agent start kimi-hello --kind omp --pane <pane-id> -- --model baseten/moonshotai/Kimi-K2.7-Code
+herdr agent prompt kimi-hello "Say hi in exactly two words." --wait --timeout 120000
+```
+
+Herdr keeps the OMP subagent in its own pane and manages it through `herdr agent` commands. The `OMP_LOCAL_PI` flag makes its `omp` process use `notion local pi` while preserving the pane's original `$PWD`, so it works in the same checkout as the harness rather than in the Notion checkout. The agent has its own Pi session and receives the delegated prompt, not the parent OMP conversation, todos, or active-agent registry.
+
+## Local terminal preferences
+
+`setup-omp.sh` does not modify shell or terminal preferences. Add the following to `~/.config/ghostty/config.ghostty` to keep the Command+` quick terminal visible when it loses focus and match the iTerm Default profile's dark, translucent background:
+
+```text
+keybind = global:cmd+grave_accent=toggle_quick_terminal
+quick-terminal-autohide = false
+background = #15191F
+background-opacity = 0.8450265957446809
+background-opacity-cells = true
+background-blur = 4
+```
+
+Ghostty requires a full restart on macOS for `background-opacity` changes. Native macOS fullscreen disables background opacity.
 
 ## OMP benchmarks
 
