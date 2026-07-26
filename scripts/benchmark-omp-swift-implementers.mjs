@@ -11,14 +11,14 @@ import {
 } from "./benchmark-output-containment.mjs";
 import {
   aggregateEventTiming,
-  benchmarkConfigWithProviders,
+  benchmarkConfigOverlay,
   benchmarkInstructionManifest,
-  isolatedOpenCodeEnvironment,
-  loadOpenCodeAuthContent,
-  recomputedRequestCost,
+  isolatedOmpEnvironment,
+  loadOmpAuthContent,
+  parseOmpEvents,
   resolveBenchmarkModelRoute,
   summarizeEventTiming,
-} from "./opencode-benchmark-runtime.mjs";
+} from "./omp-benchmark-runtime.mjs";
 
 process.umask(0o077);
 
@@ -87,7 +87,7 @@ const candidates = {
 };
 const DEFAULT_CANDIDATES = ["sonnet", "luna", "terra"];
 const IMPLEMENTER_TIMEOUT_MS = benchmarkTimeout(
-  "OPENCODE_BENCHMARK_IMPLEMENTER_TIMEOUT_MS",
+  "OMP_BENCHMARK_IMPLEMENTER_TIMEOUT_MS",
   60 * 60 * 1000,
 );
 
@@ -99,12 +99,19 @@ function benchmarkTimeout(environmentVariable, fallback) {
   return value;
 }
 
-let openCodeLauncher = "direct";
+let ompLauncher = "direct";
 
-function openCodeCommand(args) {
-  return openCodeLauncher === "notion-local"
-    ? ["notion", "local", "opencode", ...args]
-    : ["opencode", ...args];
+function ompCommand(args, configPath) {
+  const model = args[args.indexOf("--model") + 1];
+  const cwd = args[args.indexOf("--dir") + 1] ?? process.cwd();
+  const variant = args[args.indexOf("--variant") + 1];
+  const prompt = args.at(-1);
+  const agent = args[args.indexOf("--agent") + 1] ?? "";
+  const tools = agent.includes("implementer") ? "read,glob,grep,edit" : "read,glob,grep";
+  const command = ["omp", "-p", "--mode", "json", "--cwd", cwd, "--model", model, "--thinking", variant ?? "auto"];
+  if (configPath) command.push("--config", configPath);
+  command.push("--no-session", "--tools", tools, "--no-pty", prompt);
+  return command;
 }
 
 const ADVISOR_SYSTEM =
@@ -218,32 +225,20 @@ function writePrivateFile(filePath, contents) {
 }
 
 function preparePrivateDataHome(outputDir) {
-  const dataHome = path.join(outputDir, "xdg-data");
-  ensurePrivateDirectory(path.join(dataHome, "opencode"));
+  const dataHome = path.join(outputDir, "omp-state");
+  ensurePrivateDirectory(dataHome);
   return dataHome;
 }
 
 function preparePrivateConfigHome(outputDir) {
-  const configHome = path.join(outputDir, "xdg-config");
-  const openCodeConfig = path.join(configHome, "opencode");
-  ensurePrivateDirectory(openCodeConfig);
+  const configHome = path.join(outputDir, "omp-config");
+  ensurePrivateDirectory(configHome);
   return configHome;
 }
 
-function absorbAndScrubPersistedAuth(dataHome, authState) {
-  const authPath = path.join(dataHome, "opencode", "auth.json");
-  const entry = fs.lstatSync(authPath, { throwIfNoEntry: false });
-  if (!entry) return;
-  if (!entry.isFile() || entry.isSymbolicLink()) {
-    throw new Error("Refusing unexpected persisted OpenCode auth entry");
-  }
-  const refreshed = fs.readFileSync(authPath, "utf8");
-  try {
-    JSON.parse(refreshed);
-    authState.content = refreshed;
-  } finally {
-    fs.rmSync(authPath, { force: true });
-  }
+function absorbAndScrubPersistedAuth(dataHome) {
+  // Credentials remain in the OMP broker/profile and are never copied into benchmark state.
+  if (fs.existsSync(dataHome)) fs.chmodSync(dataHome, 0o700);
 }
 
 function sanitizedTestEnvironment(runtimeDirectory) {
@@ -563,7 +558,7 @@ function assertSafeInputTree(root, label) {
 }
 
 function benchmarkConfig(cwd) {
-  return benchmarkConfigWithProviders(cwd, {
+  return benchmarkConfigOverlay(cwd, {
     snapshot: false,
     share: "disabled",
     mcp: {},
@@ -614,27 +609,11 @@ function benchmarkConfigFingerprint(cwd) {
 }
 
 function parseEvents(output) {
-  const events = [];
-  const lines = output.split("\n");
-  for (const [index, line] of lines.entries()) {
-    if (!line) continue;
-    try {
-      events.push(JSON.parse(line));
-    } catch (error) {
-      if (index === lines.length - 1 && !output.endsWith("\n")) continue;
-      throw new Error(`Malformed OpenCode event at line ${index + 1}`, { cause: error });
-    }
-  }
-  return events;
+  return parseOmpEvents(output);
 }
-
 function extractText(events) {
-  const messageID = events.findLast(
-    (event) => event.type === "step_finish" && event.part?.reason === "stop",
-  )?.part?.messageID;
-  return events
-    .filter((event) => event.type === "text" && event.part?.messageID === messageID)
-    .map((event) => event.part?.text ?? "")
+  return events.filter((event) => event.type === "text")
+    .map((event) => event.part?.text ?? event.text ?? "")
     .join("")
     .trim();
 }
@@ -709,14 +688,14 @@ function validateToolPathGuard(cwd) {
   }), cwd);
   for (const [tool, input] of [
     ["read", { filePath: "../hidden-tests.txt" }],
-    ["read", { file_path: "~/.config/opencode/AGENTS.md" }],
+    ["read", { file_path: "~/.config/omp/AGENTS.md" }],
     ["grep", { path: path.join(os.homedir(), "secret") }],
     ["glob", { pattern: "../**/*" }],
     ["apply_patch", {
       patchText: "*** Begin Patch\n*** Add File: ../leaked.swift\n*** End Patch",
     }],
     ["apply_patch", {
-      patchText: "*** Begin Patch\n*** Update File: ~/.config/opencode/AGENTS.md\n*** End Patch",
+      patchText: "*** Begin Patch\n*** Update File: ~/.config/omp/AGENTS.md\n*** End Patch",
     }],
     ["apply_patch", {
       patchText: `*** Begin Patch\n*** Delete File: ${path.join(os.homedir(), "secret")}\n*** End Patch`,
@@ -803,7 +782,7 @@ async function runWithTimeout(command, options, timeoutMs) {
   return { stdout, stderr, exitCode, timedOut };
 }
 
-async function runOpenCodeTurn({
+async function runOmpTurn({
   cwd,
   model,
   variant,
@@ -811,75 +790,43 @@ async function runOpenCodeTurn({
   title,
   dataHome,
   configHome,
-  authState,
   prompt,
-  session,
 }) {
-  const args = [
-    "run",
-    "--pure",
-    "--agent",
-    agent,
-    "--dir",
-    cwd,
-    "--model",
-    model,
-    "--format",
-    "json",
-  ];
-  if (session) {
-    args.push("--session", session);
-  } else {
-    args.push("--title", title);
-  }
+  const configPath = path.join(configHome, "benchmark.json");
+  writePrivateFile(configPath, benchmarkConfig(cwd));
+  const args = ["run", "--agent", agent, "--dir", cwd, "--model", model];
   if (variant) args.push("--variant", variant);
   args.push(prompt);
   const startedAtEpochMs = Date.now();
   const started = performance.now();
   const execution = await runWithTimeout(
-    openCodeCommand(args),
+    ompCommand(args, configPath),
     {
       cwd,
-      env: isolatedOpenCodeEnvironment({
+      env: isolatedOmpEnvironment({
         configContent: benchmarkConfig(cwd),
         configHome,
         dataHome,
-        authContent: authState.content,
         cwd,
       }),
     },
     IMPLEMENTER_TIMEOUT_MS,
   );
-  absorbAndScrubPersistedAuth(dataHome, authState);
   const events = parseEvents(execution.stdout);
   assertToolPathsStayInWorkspace(events, cwd);
-  const completed = events.some(
-    (event) => event.type === "step_finish" && event.part?.reason === "stop",
+  const completed = events.some((event) =>
+    (event.type === "step_finish" && event.part?.reason === "stop") ||
+    event.type === "turn_end" || event.type === "response",
   );
-  const status = execution.timedOut
-    ? "timeout"
-    : execution.exitCode !== 0
-      ? "failed"
-      : completed
-        ? "completed"
-        : "incomplete";
-  const metrics = summarize(
-    events,
-    performance.now() - started,
-    model,
-    startedAtEpochMs,
-  );
-  metrics.cost_completeness = status === "completed"
-    ? "complete_for_observed_requests"
-    : "unknown_total_lower_bound";
+  const status = execution.timedOut ? "timeout" : execution.exitCode !== 0 ? "failed" : completed ? "completed" : "incomplete";
+  const metrics = summarize(events, performance.now() - started, model, startedAtEpochMs);
+  metrics.cost_completeness = status === "completed" ? "complete_for_observed_requests" : "unknown_total_lower_bound";
   return {
     status,
     exit_code: execution.exitCode,
-    session_id: events.find((event) => event.sessionID)?.sessionID,
+    session_id: events.find((event) => event.sessionID)?.sessionID ?? `omp-${startedAtEpochMs}`,
     text: extractText(events),
-    error: execution.exitCode === 0
-      ? undefined
-      : (execution.stderr || execution.stdout.slice(-2000)),
+    error: execution.exitCode === 0 ? undefined : (execution.stderr || execution.stdout.slice(-2000)),
     invocation_started_at_ms: startedAtEpochMs,
     metrics,
     events,
@@ -909,7 +856,7 @@ async function runImplementation({
   let prompt = `${spec.task_prompt.trim()}\n\nRead the public instructions and contract before editing. Work only in ${spec.source_path}, preserve the public API, and use Swift 6-safe concurrency. Do not add dependencies or weaken tests. The benchmark harness—not your shell—will run the public Swift Package tests after each turn and return failures for revision. Do not call an advisor or delegate.\n\nInspect and edit the implementation, then report that it is ready for the fixed test harness.`;
 
   for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const turn = await runOpenCodeTurn({
+    const turn = await runOmpTurn({
       cwd,
       model,
       variant,
@@ -930,7 +877,7 @@ async function runImplementation({
     }
     if (turn.status !== "completed" || !session) break;
     const testTail = tests.output.slice(-12000);
-    prompt = `The fixed benchmark harness ran the public Swift Package tests; the suite still failed. Reconcile the diagnostics below with the documented contract, edit only the permitted implementation file, and report when the next fixed test run is ready.\n\nTEST OUTPUT\n${testTail}`;
+    prompt = `The fixed benchmark harness ran the public Swift Package tests; the suite still failed. Reconcile the diagnostics below with the documented contract, edit only the permitted implementation file, and report when the next fixed test run is ready.\n\nPREVIOUS OMP TURN\n${turn.text}\n\nTEST OUTPUT\n${testTail}`;
   }
 
   const events = turns.flatMap((turn) => turn.events);
@@ -1157,7 +1104,7 @@ async function runAdvisorReview({
   authState,
   prompt,
 }) {
-  const review = await runOpenCodeTurn({
+  const review = await runOmpTurn({
     cwd,
     ...advisor,
     agent: "swift_advisor",
@@ -1182,15 +1129,15 @@ async function runReviewRevision({
   cwd,
   spec,
   candidate,
-  session,
+  directText,
   advice,
   title,
   dataHome,
   configHome,
   authState,
 }) {
-  const prompt = `An independent advisor reviewed the frozen direct implementation and returned the guidance below. Reconcile it against the public contract and source; do not accept it blindly. Make one revision in ${spec.source_path} if a material correction is justified. Work only in that file. Do not call an advisor, delegate, or claim to have run tests. Report the resulting decision and implementation.\n\n[advisor review]\n${advice}`;
-  const turn = await runOpenCodeTurn({
+  const prompt = `An independent advisor reviewed the frozen direct implementation below and returned the guidance below. Reconcile it against the public contract and source; do not accept it blindly. Make one revision in ${spec.source_path} if a material correction is justified. Work only in that file. Do not call an advisor, delegate, or claim to have run tests. Report the resulting decision and implementation.\n\n[direct implementation]\n${directText}\n\n[advisor review]\n${advice}`;
+  const turn = await runOmpTurn({
     cwd,
     ...candidate,
     title,
@@ -1198,7 +1145,6 @@ async function runReviewRevision({
     configHome,
     authState,
     prompt,
-    session,
   });
   const tests = await runSwiftTests(cwd);
   return {
@@ -1238,9 +1184,9 @@ function preflightModelRoute({ selection, fixtureDir, configHome, dataHome }) {
   ensurePrivateDirectory(catalogWorkspace);
   const provider = selection.model.split("/", 1)[0];
   const catalog = command(
-    openCodeCommand(["models", provider, "--verbose"]),
+    ["omp", "models", "--json"],
     catalogWorkspace,
-    isolatedOpenCodeEnvironment({
+    isolatedOmpEnvironment({
       configContent: benchmarkConfig(fixtureDir),
       configHome,
       dataHome,
@@ -1442,7 +1388,7 @@ async function runTrial({
   fixtureHash,
   hiddenTestHash,
   runnerHash,
-  openCodeVersion,
+  ompVersion,
   modelRoute,
   advisorRoute,
   environmentHash,
@@ -1459,7 +1405,7 @@ async function runTrial({
     fixtureHash,
     hiddenTestHash,
     runnerHash,
-    openCodeVersion,
+    omp_version: ompVersion,
     modelRouteHash: modelRoute.sha256,
     advisorRouteHash: advisorRoute?.sha256 ?? null,
     environmentHash,
@@ -1644,6 +1590,7 @@ async function runTrial({
         spec,
         candidate,
         session: stage.session_id,
+        directText: stage.text,
         advice: advice.text,
         title: `${trial}-review-reconciliation`,
         dataHome,
@@ -1725,10 +1672,7 @@ async function runTrial({
 
 async function main() {
   const args = parseArguments(process.argv.slice(2));
-  openCodeLauncher = args.opencode_launcher ?? "direct";
-  if (!["direct", "notion-local"].includes(openCodeLauncher)) {
-    throw new Error("--opencode-launcher must be direct or notion-local");
-  }
+  ompLauncher = "direct";
   if (!args.output_dir) throw new Error("Missing --output-dir");
   let outputDir = assertRawBenchmarkOutputOutsideRepository(args.output_dir);
   createPrivateOutputDirectory(outputDir);
@@ -1833,7 +1777,7 @@ async function main() {
 
   const dataHome = preparePrivateDataHome(outputDir);
   const configHome = preparePrivateConfigHome(outputDir);
-  const authState = { content: loadOpenCodeAuthContent() };
+  const authState = { content: loadOmpAuthContent() };
 
   const metadata = {
     protocol: advisor
@@ -1846,7 +1790,7 @@ async function main() {
     manifest_path: manifestPath,
     manifest_sha256: manifestHash,
     seed: args.seed,
-    opencode_launcher: openCodeLauncher,
+    omp_launcher: "direct",
     repeat: args.repeat,
     sampling_class: singleBlock
       ? "exploratory_single_block"
@@ -1863,26 +1807,26 @@ async function main() {
     runner_sha256: createHash("sha256")
       .update(fs.readFileSync(new URL(import.meta.url)))
       .digest("hex"),
-    opencode_version: command(openCodeCommand(["--version"]), process.cwd()).trim(),
+    omp_version: command(["omp", "--version"], process.cwd()).trim(),
     swift_version: command(["swift", "--version"], process.cwd()).trim(),
     xcode_version: command(["xcodebuild", "-version"], process.cwd()).trim(),
     sdk_version: command(["xcrun", "--show-sdk-version"], process.cwd()).trim(),
     os_version: command(["sw_vers"], process.cwd()).trim(),
     architecture: command(["uname", "-m"], process.cwd()).trim(),
     cost_protocol:
-      "Normalized list-price cost per completed request; OpenAI input context above 272k is repriced at 2x input/cache and 1.5x output. GPT-5.5 requests with cache-write usage retain event-reported cost because no defensible cache-write rate is pinned. Each reviewed-route total includes its shared direct implementation as the counterfactual cost of choosing that route.",
+      "Normalized OMP list-price cost per completed request; OpenAI input context above 272k is repriced at 2x input/cache and 1.5x output. Each reviewed-route total includes its shared direct implementation as the counterfactual cost of choosing that route.",
     advisor_system_sha256: advisor
       ? createHash("sha256").update(ADVISOR_SYSTEM).digest("hex")
       : null,
     global_instructions:
-      "Project/global OpenCode config excluded; fixture-root AGENTS.md explicitly locked when present.",
+      "Project/global OMP config excluded; fixture-root AGENTS.md explicitly locked when present.",
     benchmark_instructions: benchmarkInstructionManifest(fixtureDir),
     fingerprint_schema: 6,
     fingerprint_compatibility:
       "Route-provenance schema changes intentionally invalidate Swift trial fingerprints from earlier schemas.",
   };
   metadata.environment_sha256 = createHash("sha256").update(JSON.stringify({
-    opencode: metadata.opencode_version,
+    omp: metadata.omp_version,
     swift: metadata.swift_version,
     xcode: metadata.xcode_version,
     sdk: metadata.sdk_version,
@@ -1947,7 +1891,7 @@ async function main() {
           fixtureHash: metadata.fixture_sha256,
           hiddenTestHash: metadata.hidden_test_sha256,
           runnerHash: metadata.runner_sha256,
-          openCodeVersion: metadata.opencode_version,
+          ompVersion: metadata.omp_version,
           modelRoute: modelRoutes[name],
           advisorRoute,
           environmentHash: metadata.environment_sha256,
@@ -1964,9 +1908,6 @@ async function main() {
     path.join(outputDir, "summary.json"),
     `${JSON.stringify(results, null, 2)}\n`,
   );
-  if (fs.existsSync(path.join(dataHome, "opencode", "auth.json"))) {
-    throw new Error("Benchmark output retained a copied OpenCode auth file");
-  }
 }
 
 if (import.meta.main) {

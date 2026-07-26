@@ -57,8 +57,8 @@ if (
   delete merged.task.maxRecursionDepth;
   if (Object.keys(merged.task).length === 0) delete merged.task;
 }
-// Context-tool configuration is owned by OpenCode. Preserve any OMP-specific
-// setting beyond an enable-only override.
+// Context-tool configuration belongs to the active OMP profile. Preserve any
+// OMP-specific setting beyond an enable-only override.
 for (const toolName of ["glob", "grep"]) {
   const toolConfig = merged[toolName];
   if (

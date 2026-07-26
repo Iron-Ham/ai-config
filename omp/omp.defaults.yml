@@ -6,7 +6,7 @@ modelRoles:
   plan: openai/gpt-5.6-terra:xhigh
   smol: openai/gpt-5.6-luna:high
   slow: openai/gpt-5.6-sol:high
-  tiny: openai/gpt-5.6-luna:low
+  tiny: openai/gpt-5.6-luna:medium
   task: openai/gpt-5.6-terra:high
   commit: baseten/moonshotai/Kimi-K2.7-Code
   advisor: openai/gpt-5.6-sol:high

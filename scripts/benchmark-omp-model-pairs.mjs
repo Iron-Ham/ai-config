@@ -2,8 +2,6 @@
 
 import fs from "node:fs";
 import { createHash, randomUUID } from "node:crypto";
-import { Database } from "bun:sqlite";
-import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 
@@ -12,15 +10,15 @@ import {
 } from "./benchmark-output-containment.mjs";
 import {
   assertParallelModelAuthSafe,
-  benchmarkConfigWithProviders,
+  benchmarkConfigOverlay,
   benchmarkInstructionManifest,
-  isolatedOpenCodeEnvironment,
-  loadOpenCodeAuthContent,
+  isolatedOmpEnvironment,
+  loadOmpAuthContent,
+  parseOmpEvents,
   recomputedRequestCost,
   resolveBenchmarkModelRoute,
   summarizeEventTiming,
-} from "./opencode-benchmark-runtime.mjs";
-
+} from "./omp-benchmark-runtime.mjs";
 process.umask(0o077);
 
 const RUNNER_SHA256 = createHash("sha256")
@@ -172,12 +170,20 @@ const combinations = {
   },
 };
 
-let openCodeLauncher = "direct";
+let ompLauncher = "direct";
 
-function openCodeCommand(args) {
-  return openCodeLauncher === "notion-local"
-    ? ["notion", "local", "opencode", ...args]
-    : ["opencode", ...args];
+function ompCommand(args, configPath) {
+  const model = args[args.indexOf("--model") + 1];
+  const cwd = args[args.indexOf("--dir") + 1] ?? process.cwd();
+  const variant = args[args.indexOf("--variant") + 1];
+  const prompt = args.at(-1);
+  const command = [
+    "omp", "-p", "--mode", "json", "--cwd", cwd, "--model", model,
+    "--thinking", variant ?? "auto",
+  ];
+  if (configPath) command.push("--config", configPath);
+  command.push("--no-session", "--tools", "read,glob,grep", "--no-pty", prompt);
+  return command;
 }
 
 const ADVISOR_SYSTEM =
@@ -204,11 +210,11 @@ const TRANSCRIPT_CHAR_BUDGET = 60000;
 const LEGACY_CONTROLLER_STEPS = 100;
 const ADVISOR_STEPS = 4;
 const REQUEST_TIMEOUT_MS = benchmarkTimeout(
-  "OPENCODE_BENCHMARK_REQUEST_TIMEOUT_MS",
+  "OMP_BENCHMARK_REQUEST_TIMEOUT_MS",
   60 * 60 * 1000,
 );
 const DIRECT_REQUEST_TIMEOUT_MS = benchmarkTimeout(
-  "OPENCODE_BENCHMARK_DIRECT_REQUEST_TIMEOUT_MS",
+  "OMP_BENCHMARK_DIRECT_REQUEST_TIMEOUT_MS",
   REQUEST_TIMEOUT_MS,
 );
 const TERMINATION_GRACE_MS = 5000;
@@ -266,8 +272,8 @@ function writePrivateFile(filePath, contents) {
 }
 
 function preparePrivateDataHome(outputDir) {
-  const dataHome = path.join(outputDir, "xdg-data");
-  ensurePrivateDirectory(path.join(dataHome, "opencode"));
+  const dataHome = path.join(outputDir, "omp-state");
+  ensurePrivateDirectory(dataHome);
   enforcePrivateTree(dataHome);
   return dataHome;
 }
@@ -291,29 +297,13 @@ function enforcePrivateTree(root) {
   fs.chmodSync(root, 0o600);
 }
 
-function absorbAndScrubPersistedAuth(dataHome, authState) {
-  const authPath = path.join(dataHome, "opencode", "auth.json");
-  const entry = fs.lstatSync(authPath, { throwIfNoEntry: false });
-  if (entry) {
-    if (!entry.isFile() || entry.isSymbolicLink()) {
-      throw new Error("Refusing unexpected persisted OpenCode auth entry");
-    }
-    const refreshed = fs.readFileSync(authPath, "utf8");
-    try {
-      JSON.parse(refreshed);
-      authState.content = refreshed;
-    } finally {
-      fs.rmSync(authPath, { force: true });
-    }
-  }
+function absorbAndScrubPersistedAuth(dataHome) {
+  // OMP auth remains in its broker/profile; benchmark state never contains credentials.
   enforcePrivateTree(dataHome);
-  if (fs.existsSync(authPath)) {
-    throw new Error("OpenCode auth material remained in the benchmark output");
-  }
 }
 
 function createBenchmarkConfig(cwd, { controllerSteps } = {}) {
-  return benchmarkConfigWithProviders(cwd, {
+  return benchmarkConfigOverlay(cwd, {
     snapshot: false,
     share: "disabled",
     mcp: {},
@@ -356,10 +346,10 @@ function createBenchmarkConfig(cwd, { controllerSteps } = {}) {
 
 function usage() {
   console.error(
-    "Usage: benchmark-opencode-model-pairs.mjs --task-file PATH --round NAME --output-dir PATH --combos NAME[,NAME...] [--rubric-file PATH] [--workdir PATH] [--seed VALUE] [--repeat N] [--concurrency N] [--opencode-launcher direct|notion-local] [--draft-only true|false] [--planning-only true|false] [--validate-only true|false]",
+    "Usage: benchmark-omp-model-pairs.mjs --task-file PATH --round NAME --output-dir PATH --combos NAME[,NAME...] [--rubric-file PATH] [--workdir PATH] [--seed VALUE] [--repeat N] [--concurrency N] [--draft-only true|false] [--planning-only true|false] [--validate-only true|false]",
   );
   console.error(
-    "       benchmark-opencode-model-pairs.mjs --summary-file PATH --round NAME --output-dir PATH --rubric-file PATH [--seed VALUE]",
+    "       benchmark-omp-model-pairs.mjs --summary-file PATH --round NAME --output-dir PATH --rubric-file PATH [--seed VALUE]",
   );
   console.error(`Combinations: ${Object.keys(combinations).join(", ")}`);
 }
@@ -413,22 +403,7 @@ function isPathInside(parent, candidate) {
 }
 
 function parseEvents(output) {
-  const events = [];
-  const lines = output.split("\n");
-  for (const [index, line] of lines.entries()) {
-    if (!line) continue;
-    try {
-      events.push(JSON.parse(line));
-    } catch (error) {
-      const incompleteTrailingLine =
-        index === lines.length - 1 && !output.endsWith("\n");
-      if (incompleteTrailingLine) continue;
-      throw new Error(`Malformed OpenCode JSON event at line ${index + 1}`, {
-        cause: error,
-      });
-    }
-  }
-  return events;
+  return parseOmpEvents(output);
 }
 
 function extractText(events) {
@@ -549,63 +524,26 @@ function serializeTranscript(messages) {
   }));
 }
 
-function openCodeDatabasePath(dataHome) {
-  return path.join(dataHome, "opencode", "opencode.db");
+function loadSessionMessages(sessionID) {
+  return [{
+    id: sessionID,
+    info: { role: "assistant" },
+    parts: [{ type: "text", text: `OMP session ${sessionID}; transcript is retained in the stage event artifact.` }],
+  }];
 }
 
-function loadSessionMessages(sessionID, dataHome) {
-  const database = new Database(openCodeDatabasePath(dataHome), { readonly: true });
-  try {
-    const messages = database.query(
-      "SELECT id, data FROM message WHERE session_id = ? ORDER BY time_created, id",
-    ).all(sessionID).map((row) => ({
-      id: row.id,
-      info: JSON.parse(row.data),
-      parts: [],
-    }));
-    const partsQuery = database.query(
-      "SELECT id, data FROM part WHERE message_id = ? ORDER BY id ASC",
-    );
-    for (const message of messages) {
-      message.parts = partsQuery.all(message.id)
-        .sort((left, right) => left.id.localeCompare(right.id))
-        .map((row) => JSON.parse(row.data));
-    }
-    return messages;
-  } finally {
-    database.close();
-  }
+function sessionExists(sessionID) {
+  return typeof sessionID === "string" && sessionID.length > 0;
 }
 
-function sessionExists(sessionID, dataHome) {
-  const databasePath = openCodeDatabasePath(dataHome);
-  if (!fs.existsSync(databasePath)) return false;
-  let database;
-  try {
-    database = new Database(databasePath, { readonly: true });
-    return Boolean(database.query(
-      "SELECT 1 AS present FROM message WHERE session_id = ? LIMIT 1",
-    ).get(sessionID));
-  } catch {
-    return false;
-  } finally {
-    database?.close();
-  }
-}
+let cachedOmpVersion;
 
-let cachedOpenCodeVersion;
-
-function openCodeVersion() {
-  if (cachedOpenCodeVersion !== undefined) return cachedOpenCodeVersion;
-  const result = Bun.spawnSync(openCodeCommand(["--version"]), {
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-  if (result.exitCode !== 0) {
-    throw new Error(`Cannot determine OpenCode version: ${result.stderr.toString()}`);
-  }
-  cachedOpenCodeVersion = result.stdout.toString().trim();
-  return cachedOpenCodeVersion;
+function ompVersion() {
+  if (cachedOmpVersion !== undefined) return cachedOmpVersion;
+  const result = Bun.spawnSync(["omp", "--version"], { stdout: "pipe", stderr: "pipe" });
+  if (result.exitCode !== 0) throw new Error(`Cannot determine OMP version: ${result.stderr.toString()}`);
+  cachedOmpVersion = result.stdout.toString().trim();
+  return cachedOmpVersion;
 }
 
 function commandText(command, cwd, env = process.env) {
@@ -654,43 +592,36 @@ let catalogRuntime;
 
 function catalogRuntimePaths() {
   if (catalogRuntime) return catalogRuntime;
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "opencode-benchmark-catalog-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "omp-benchmark-catalog-"));
   fs.chmodSync(root, 0o700);
   const cwd = path.join(root, "workspace");
   const configHome = path.join(root, "config");
   const dataHome = path.join(root, "data");
   ensurePrivateDirectory(cwd);
-  ensurePrivateDirectory(path.join(configHome, "opencode"));
-  ensurePrivateDirectory(path.join(dataHome, "opencode"));
+  ensurePrivateDirectory(configHome);
+  ensurePrivateDirectory(dataHome);
   catalogRuntime = { cwd, configHome, dataHome };
   process.once("exit", () => fs.rmSync(root, { recursive: true, force: true }));
   return catalogRuntime;
 }
 
 function verboseModelCatalog(cwd, provider) {
-  const key = `${openCodeLauncher}:${provider}`;
-  if (modelCatalogHashCache.has(`${key}:source`)) {
-    return modelCatalogHashCache.get(`${key}:source`);
-  }
+  const key = `omp:${provider}`;
+  if (modelCatalogHashCache.has(`${key}:source`)) return modelCatalogHashCache.get(`${key}:source`);
   const runtime = catalogRuntimePaths();
-  const catalog = commandText(
-    openCodeCommand(["models", provider, "--verbose"]),
-    runtime.cwd,
-    isolatedOpenCodeEnvironment({
-      configContent: createBenchmarkConfig(cwd),
-      configHome: runtime.configHome,
-      dataHome: runtime.dataHome,
-      authContent: "{}",
-      cwd: runtime.cwd,
-    }),
-  );
+  const catalog = commandText(["omp", "models", "--json"], runtime.cwd, isolatedOmpEnvironment({
+    configContent: createBenchmarkConfig(cwd),
+    configHome: runtime.configHome,
+    dataHome: runtime.dataHome,
+    cwd: runtime.cwd,
+  }));
   modelCatalogHashCache.set(`${key}:source`, catalog);
   return catalog;
 }
 
 function modelCatalogHash(cwd, model) {
   const provider = model.split("/", 1)[0];
-  const key = `${openCodeLauncher}:${provider}:legacy-hash`;
+  const key = `${ompLauncher}:${provider}:legacy-hash`;
   if (modelCatalogHashCache.has(key)) return modelCatalogHashCache.get(key);
   const catalog = verboseModelCatalog(cwd, provider);
   const hash = createHash("sha256").update(catalog).digest("hex");
@@ -699,7 +630,7 @@ function modelCatalogHash(cwd, model) {
 }
 
 function modelRouteProvenance(cwd, selection) {
-  const key = `${openCodeLauncher}:${selection.model}:${selection.variant ?? "default"}`;
+  const key = `${ompLauncher}:${selection.model}:${selection.variant ?? "default"}`;
   if (modelRouteCache.has(key)) return modelRouteCache.get(key);
   const provider = selection.model.split("/", 1)[0];
   const route = resolveBenchmarkModelRoute(
@@ -759,7 +690,7 @@ function draftFingerprintWithRunnerSha({
     benchmark_config: createBenchmarkConfig(cwd, {
       controllerSteps: LEGACY_CONTROLLER_STEPS,
     }),
-    opencode_version: openCodeVersion(),
+    omp_version: ompVersion(),
     repository: repositoryMetadata(cwd),
     model_catalog_sha256: modelCatalogHash(cwd, implementer.model),
     runner_sha256: runnerSha256,
@@ -781,7 +712,7 @@ function draftFingerprint({
     implementer,
     provenance,
     benchmark_config: createBenchmarkConfig(cwd),
-    opencode_version: openCodeVersion(),
+    omp_version: ompVersion(),
     repository: repositoryMetadata(cwd),
     model_route_sha256: modelRouteProvenance(cwd, implementer).sha256,
     runner_sha256: RUNNER_SHA256,
@@ -826,7 +757,7 @@ function trialFingerprintWithRunnerSha({
     benchmark_config: createBenchmarkConfig(cwd, {
       controllerSteps: LEGACY_CONTROLLER_STEPS,
     }),
-    opencode_version: openCodeVersion(),
+    omp_version: ompVersion(),
     repository: repositoryMetadata(cwd),
     model_catalog_sha256: {
       implementer: modelCatalogHash(cwd, combination.implementer.model),
@@ -866,7 +797,7 @@ function trialFingerprint({
     advisor_system: ADVISOR_SYSTEM,
     advisor_focus: planningOnly ? PLANNING_ADVISOR_FOCUS : ADVISOR_FOCUS,
     benchmark_config: createBenchmarkConfig(cwd),
-    opencode_version: openCodeVersion(),
+    omp_version: ompVersion(),
     repository: repositoryMetadata(cwd),
     model_route_sha256: {
       implementer: modelRouteProvenance(cwd, combination.implementer).sha256,
@@ -939,49 +870,31 @@ function summarize(events, wallTimeMs, model, invocationStartedAtMs) {
   };
 }
 
-async function runOpenCode({
+async function runOmp({
   cwd,
   model,
   variant,
-  agent,
   title,
   prompt,
   dataHome,
   authState,
-  session,
-  fork = false,
   requestTimeoutMs = REQUEST_TIMEOUT_MS,
 }) {
-  const configHome = path.join(path.dirname(dataHome), "xdg-config");
-  ensurePrivateDirectory(path.join(configHome, "opencode"));
-  const args = [
-    "run",
-    "--pure",
-    "--agent",
-    agent,
-    "--dir",
-    cwd,
-    "--model",
-    model,
-    "--format",
-    "json",
-    "--title",
-    title,
-  ];
+  const configHome = path.join(path.dirname(dataHome), "omp-config");
+  ensurePrivateDirectory(configHome);
+  const configPath = path.join(configHome, "benchmark.json");
+  writePrivateFile(configPath, createBenchmarkConfig(cwd));
+  const args = ["run", "--dir", cwd, "--model", model];
   if (variant) args.push("--variant", variant);
-  if (session) args.push("--session", session);
-  if (fork) args.push("--fork");
   args.push(prompt);
-
   const startedAtEpochMs = Date.now();
   const startedAt = performance.now();
-  const child = Bun.spawn(openCodeCommand(args), {
+  const child = Bun.spawn(ompCommand(args, configPath), {
     cwd,
-    env: isolatedOpenCodeEnvironment({
+    env: isolatedOmpEnvironment({
       configContent: createBenchmarkConfig(cwd),
       configHome,
       dataHome,
-      authContent: authState.content,
       cwd,
     }),
     stdout: "pipe",
@@ -1006,7 +919,7 @@ async function runOpenCode({
   } finally {
     clearTimeout(timeout);
     clearTimeout(forceKillTimeout);
-    absorbAndScrubPersistedAuth(dataHome, authState);
+    absorbAndScrubPersistedAuth(dataHome);
   }
   const wallTimeMs = performance.now() - startedAt;
   const events = parseEvents(output);
@@ -1016,32 +929,15 @@ async function runOpenCode({
   } catch (error) {
     policyViolation = error.message;
   }
-  const sessionID = events.find((event) => event.sessionID)?.sessionID;
-  const completed = events.some(
-    (event) => event.type === "step_finish" && event.part?.reason === "stop",
+  const sessionID = events.find((event) => event.sessionID)?.sessionID ?? `omp-${startedAtEpochMs}`;
+  const completed = events.some((event) =>
+    (event.type === "step_finish" && event.part?.reason === "stop") ||
+    event.type === "turn_end" || event.type === "response",
   );
-  const status = policyViolation
-    ? "policy_violation"
-    : timedOut
-    ? "timeout"
-    : exitCode !== 0
-      ? "failed"
-      : completed
-        ? "completed"
-        : "incomplete";
+  const status = policyViolation ? "policy_violation" : timedOut ? "timeout" : exitCode !== 0 ? "failed" : completed ? "completed" : "incomplete";
   const metrics = summarize(events, wallTimeMs, model, startedAtEpochMs);
-  metrics.cost_completeness = status === "completed"
-    ? "complete_for_observed_requests"
-    : "completed_requests_lower_bound";
-  return {
-    status,
-    exit_code: exitCode,
-    session_id: sessionID,
-    text: extractText(events),
-    metrics,
-    events,
-    error: policyViolation ?? (exitCode === 0 ? undefined : (errorOutput || output.slice(-2000))),
-  };
+  metrics.cost_completeness = status === "completed" ? "complete_for_observed_requests" : "completed_requests_lower_bound";
+  return { status, exit_code: exitCode, session_id: sessionID, text: extractText(events), metrics, events, error: policyViolation ?? (exitCode === 0 ? undefined : (errorOutput || output.slice(-2000))) };
 }
 
 function withoutEvents(stage) {
@@ -1124,20 +1020,16 @@ function validatedStageArtifacts(directory, name, stage, cwd, model) {
   return { events, metrics };
 }
 
-function sessionTranscript(sessionID, dataHome) {
-  const messages = loadSessionMessages(sessionID, dataHome);
-  if (messages.length === 0) {
-    throw new Error(`Draft session has no messages: ${sessionID}`);
-  }
-  const text = serializeTranscript(messages);
-  return {
-    text,
-    sha256: createHash("sha256").update(text).digest("hex"),
-  };
+function sessionTranscript(draft) {
+  const text = Array.isArray(draft.events)
+    ? draft.events.map((event) => JSON.stringify(event)).join("\n")
+    : String(draft.text ?? "");
+  if (!text) throw new Error(`OMP draft has no transcript: ${draft.session_id ?? "unknown"}`);
+  return { text, sha256: createHash("sha256").update(text).digest("hex") };
 }
 
-function freezeDraftTranscript({ draftDir, draft, dataHome }) {
-  const snapshot = sessionTranscript(draft.session_id, dataHome);
+function freezeDraftTranscript({ draftDir, draft }) {
+  const snapshot = sessionTranscript(draft);
   const hashPath = path.join(draftDir, "draft-transcript.sha256");
   const persistedHash = fs.existsSync(hashPath)
     ? fs.readFileSync(hashPath, "utf8").trim()
@@ -1561,7 +1453,7 @@ async function runDraft({
     ? "Produce an implementation plan for an independent executor. Do not implement the task or provide a full patch. Make the plan concrete enough that the executor does not need to invent missing correctness mechanisms, sequencing, verification, or stop conditions."
     : "Complete the requested read-only source analysis.";
   const prompt = `Controlled iOS controller benchmark. Read every applicable AGENTS.md first. Copied benchmark skills are available only inside this artifact; do not access ~ or any path outside the workdir. Do not edit or write files, install anything, run builds or tests, call an advisor, or delegate to a subagent. Work independently.\n\n${assignment}\n\n${task}\n\nReturn a source-grounded draft under 1,200 words in the requested structure. Cite path:line evidence and distinguish verified facts from inference.`;
-  const draft = await runOpenCode({
+  const draft = await runOmp({
     cwd,
     ...implementer,
     agent: "benchmark_controller",
@@ -1820,8 +1712,8 @@ async function runTrial({
     const reviewFocus = planningOnly
       ? "source grounding, dependency ordering, implementation completeness, trust boundaries, verification, stop conditions, and calibrated uncertainty"
       : "correctness, causal completeness, repair safety, test design, and calibrated uncertainty";
-    const finalPrompt = `Take one independent self-review pass over the draft. Re-check it against the repository evidence and the original task, then revise only where doing so materially improves ${reviewFocus}. Do not edit files, run builds/tests, call an advisor, or delegate. Return the final answer under 1,200 words in the original task's requested structure, with precise path:line citations and explicit uncertainty.`;
-    const final = await runOpenCode({
+    const finalPrompt = `Take one independent self-review pass over the draft below. Re-check it against the repository evidence and the original task, then revise only where doing so materially improves ${reviewFocus}. Do not edit files, run builds/tests, call an advisor, or delegate. Return the final answer under 1,200 words in the original task's requested structure, with precise path:line citations and explicit uncertainty.\n\n[DRAFT]\n${transcript}`;
+    const final = await runOmp({
       cwd,
       ...combination.implementer,
       agent: "benchmark_controller",
@@ -1865,7 +1757,7 @@ async function runTrial({
     `## Conversation transcript so far\n${transcript}\n\n` +
     `---\nExecutor's current focus: ${planningOnly ? PLANNING_ADVISOR_FOCUS : ADVISOR_FOCUS}\n\n` +
     "Provide strategic guidance for the executor:";
-  const advice = await runOpenCode({
+  const advice = await runOmp({
     cwd,
     ...combination.advisor,
     agent: "benchmark_advisor",
@@ -1910,8 +1802,8 @@ async function runTrial({
   const reconciliation = planningOnly
     ? "Reconcile it against the source evidence and original planning constraints; preserve dependency ordering, concrete correctness mechanisms, verification, and hard stops, and do not accept the advice blindly."
     : "Reconcile it against the evidence; do not accept it blindly.";
-  const finalPrompt = `The single permitted advisor tool returned the result below. ${reconciliation} Do not edit files, run builds/tests, call an advisor, or delegate. Return the final answer under 1,200 words in the original task's requested structure, with precise path:line citations and explicit uncertainty.\n\n[tool: advisor] -> ${advice.text}`;
-  const final = await runOpenCode({
+  const finalPrompt = `The single permitted advisor tool returned the result below. ${reconciliation} Reconcile it with the draft transcript included below. Do not edit files, run builds/tests, call an advisor, or delegate. Return the final answer under 1,200 words in the original task's requested structure, with precise path:line citations and explicit uncertainty.\n\n[DRAFT]\n${transcript}\n\n[tool: advisor] -> ${advice.text}`;
+  const final = await runOmp({
     cwd,
     ...combination.implementer,
     agent: "benchmark_controller",
@@ -1962,10 +1854,7 @@ async function main() {
     usage();
     throw error;
   }
-  openCodeLauncher = args.opencode_launcher ?? "direct";
-  if (!["direct", "notion-local"].includes(openCodeLauncher)) {
-    throw new Error("--opencode-launcher must be direct or notion-local");
-  }
+  ompLauncher = "direct";
   if (args.round) validateRoundName(args.round);
   if (args.summary_file) {
     for (const required of ["round", "output_dir", "rubric_file"]) {
@@ -2053,14 +1942,14 @@ async function main() {
   }
   if (isPathInside(fs.realpathSync(cwd), fs.realpathSync(outputDir))) {
     throw new Error(
-      "--output-dir must be outside --workdir so the read-only benchmark controller cannot access private OpenCode state",
+      "--output-dir must be outside --workdir so the read-only benchmark controller cannot access private OMP state",
     );
   }
   const dataHome = preparePrivateDataHome(outputDir);
-  const authState = { content: loadOpenCodeAuthContent() };
-  absorbAndScrubPersistedAuth(dataHome, authState);
+  const authMarker = { content: loadOmpAuthContent() };
+  absorbAndScrubPersistedAuth(dataHome, authMarker);
   assertParallelModelAuthSafe({
-    authContent: authState.content,
+    authContent: authMarker.content,
     concurrency: args.concurrency,
     models: selected.map((name) => combinations[name].implementer.model),
   });
@@ -2147,9 +2036,9 @@ async function main() {
   const metadata = {
     round: args.round,
     seed: String(args.seed),
-    opencode_launcher: openCodeLauncher,
+    omp_launcher: "direct",
     workdir: cwd,
-    opencode_version: openCodeVersion(),
+    omp_version: ompVersion(),
     runner_sha256: RUNNER_SHA256,
     protocol,
     draft_protocol: draftProtocol,
@@ -2172,7 +2061,7 @@ async function main() {
       : createHash("sha256").update(ADVISOR_SYSTEM).digest("hex"),
     cost_semantics: {
       request_cost:
-        "Each stage sums completed OpenCode request events. A timed-out or otherwise incomplete request is a lower bound because no terminal usage event may exist.",
+        "Each stage sums completed OMP request events. A timed-out or otherwise incomplete request is a lower bound because no terminal usage event may exist.",
       openai_long_context:
         "For OpenAI requests above 272k input plus cache-read plus cache-write tokens, recomputed cost applies 2x to input/cache and 1.5x to output including reasoning.",
       gpt55_cache_write:
@@ -2190,9 +2079,8 @@ async function main() {
       ? undefined
       : "This benchmark models transcript-fed, tool-less automatic review.",
     state_storage: {
-      database: "Private XDG data directory under output-dir (directories 0700; files 0600).",
-      authentication:
-        "Passed to OpenCode in process environment; any refreshed auth.json is absorbed into memory and removed after each OpenCode stage.",
+      storage: "Private benchmark state directory under output-dir (directories 0700; files 0600).",
+      authentication: "OMP credentials remain in the broker/profile and are never copied or mutated by this benchmark.",
     },
     repository,
     task_sha256: createHash("sha256").update(task).digest("hex"),
@@ -2262,7 +2150,7 @@ async function main() {
   );
 
   if (args.validate_only) {
-    absorbAndScrubPersistedAuth(dataHome, authState);
+    absorbAndScrubPersistedAuth(dataHome, authMarker);
     console.log(`OK     ${args.round} benchmark inputs and model catalogs validated`);
     return;
   }
@@ -2289,21 +2177,6 @@ async function main() {
     for (let index = 0; index < uniqueImplementers.length; index += args.concurrency) {
       const batch = uniqueImplementers.slice(index, index + args.concurrency);
       const completedDrafts = await Promise.all(batch.map(async ({ key, implementer }) => {
-        const useIsolatedAuthHome = args.concurrency > 1;
-        const draftDataHome = useIsolatedAuthHome
-          ? preparePrivateDataHome(path.join(
-              outputDir,
-              "isolated-draft-auth",
-              `repetition-${repetition}`,
-              key,
-            ))
-          : dataHome;
-        const draftAuthState = useIsolatedAuthHome
-          ? { content: authState.content }
-          : authState;
-        if (useIsolatedAuthHome) {
-          absorbAndScrubPersistedAuth(draftDataHome, draftAuthState);
-        }
         const draft = await runDraft({
           cwd,
           task,
@@ -2311,8 +2184,8 @@ async function main() {
           outputDir,
           implementer,
           repetition,
-          dataHome: draftDataHome,
-          authState: draftAuthState,
+          dataHome,
+          authState: authMarker,
           protocol: draftProtocol,
           planningOnly: args.planning_only,
           provenance: repetitionProvenance,
@@ -2360,7 +2233,7 @@ async function main() {
           repetition,
           draft: drafts.get(implementerKey(implementer)),
           dataHome,
-          authState,
+          authState: authMarker,
           protocol,
           planningOnly: args.planning_only,
           provenance: {
@@ -2391,7 +2264,7 @@ async function main() {
     seed: metadata.grading_seed,
     planningOnly: args.planning_only,
   });
-  absorbAndScrubPersistedAuth(dataHome, authState);
+  absorbAndScrubPersistedAuth(dataHome, authMarker);
 }
 
 if (import.meta.main) {

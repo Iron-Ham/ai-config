@@ -1,6 +1,7 @@
 # OpenCode model-routing evidence
 
 This directory contains only privacy-safe aggregates used by the OpenCode routing report.
+These retained aggregates predate the OMP port; do not pool them with OMP runs without an explicit versioned comparison.
 
 ## Published evidence
 
@@ -35,7 +36,7 @@ Raw runs live outside the repository in private directories. The runner:
 - revalidates reused raw event logs and text before reuse; and
 - emits anonymous grading packets for every nonempty candidate artifact, including failed or timed-out work, while keeping completion, validation, and compliance visible as separate outcomes.
 
-`scripts/benchmark-opencode-model-pairs.mjs` runs the production planning and source-analysis protocols and retains support for reproducing the archived reviewer evidence. `scripts/summarize-blind-grades.mjs` joins independent blind grades to private answer keys without publishing those keys.
+`scripts/benchmark-omp-model-pairs.mjs` runs the production planning and source-analysis protocols and retains support for reproducing the archived reviewer evidence. `scripts/summarize-blind-grades.mjs` joins independent blind grades to private answer keys without publishing those keys.
 
 The open-weight provider study treats `(model, provider, serving path, reasoning setting)` as the route. Fireworks Standard, Fireworks Fast, and Baseten must use exact pinned IDs and a contemporaneous Terra reference. Implementation screens use the three production-shaped Swift fixtures and hidden tests; only completed, policy-compliant routes advance to three balanced repeats. Planning and bounded-reader roles require separate repeated protocols. Small-model utility results apply only to the exact output contract tested. Luna low for project-copy names and Kimi K2.7 Code through Baseten for session titles are measured recommendations, not installed defaults.
 

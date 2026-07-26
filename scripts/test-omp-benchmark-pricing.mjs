@@ -2,7 +2,7 @@
 
 import assert from "node:assert/strict";
 
-import { recomputedRequestCost } from "./opencode-benchmark-runtime.mjs";
+import { recomputedRequestCost } from "./omp-benchmark-runtime.mjs";
 
 function finish({
   cost = 0,
@@ -122,4 +122,4 @@ assert.equal(
   0.45,
 );
 
-console.log("PASS OpenCode benchmark price normalization");
+console.log("PASS OMP benchmark price normalization");

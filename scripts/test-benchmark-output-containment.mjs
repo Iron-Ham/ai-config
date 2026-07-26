@@ -119,7 +119,7 @@ try {
     "results",
   );
   assertRunnerRejectsRepositoryOutput(
-    "benchmark-opencode-model-pairs.mjs",
+    "benchmark-omp-model-pairs.mjs",
     [
       "--task-file",
       path.join(externalRoot, "missing-task.md"),
@@ -140,7 +140,7 @@ try {
     "results",
   );
   assertRunnerAllowsExternalOutput(
-    "benchmark-opencode-model-pairs.mjs",
+    "benchmark-omp-model-pairs.mjs",
     [
       "--task-file",
       path.join(externalRoot, "missing-task.md"),
@@ -163,7 +163,7 @@ try {
   fs.mkdirSync(existingModelPairsOutput, { mode: 0o755 });
   fs.chmodSync(existingModelPairsOutput, 0o755);
   assertRunnerRejectsExistingOutput(
-    "benchmark-opencode-model-pairs.mjs",
+    "benchmark-omp-model-pairs.mjs",
     [
       "--task-file",
       path.join(externalRoot, "missing-task.md"),
@@ -187,7 +187,7 @@ try {
     "results",
   );
   assertRunnerRejectsRepositoryOutput(
-    "benchmark-opencode-model-pairs.mjs",
+    "benchmark-omp-model-pairs.mjs",
     [
       "--summary-file",
       path.join(externalRoot, "missing-summary.json"),
@@ -207,12 +207,12 @@ try {
     "results",
   );
   assertRunnerRejectsRepositoryOutput(
-    "benchmark-opencode-swift-implementers.mjs",
+    "benchmark-omp-swift-implementers.mjs",
     ["--output-dir", swiftImplementersOutput],
     swiftImplementersOutput,
   );
   assertRunnerAllowsExternalOutput(
-    "benchmark-opencode-swift-implementers.mjs",
+    "benchmark-omp-swift-implementers.mjs",
     ["--output-dir", path.join(externalRoot, "swift-implementers", "results")],
     /Missing --fixture-dir or manifest fixture_dir/,
   );
@@ -220,7 +220,7 @@ try {
   fs.mkdirSync(existingSwiftOutput, { mode: 0o755 });
   fs.chmodSync(existingSwiftOutput, 0o755);
   assertRunnerRejectsExistingOutput(
-    "benchmark-opencode-swift-implementers.mjs",
+    "benchmark-omp-swift-implementers.mjs",
     ["--output-dir", existingSwiftOutput],
     existingSwiftOutput,
   );
@@ -231,7 +231,7 @@ try {
     "results",
   );
   assertRunnerRejectsRepositoryOutput(
-    "benchmark-opencode-context-tools.mjs",
+    "benchmark-omp-context-tools.mjs",
     [
       "--task-file",
       path.join(externalRoot, "missing-task.md"),
@@ -241,8 +241,6 @@ try {
       contextToolsOutput,
       "--model",
       "openai/gpt-5.6-terra",
-      "--tool-node-modules",
-      externalRoot,
       "--validation-command",
       "true",
     ],
@@ -252,7 +250,7 @@ try {
   fs.mkdirSync(existingContextToolsOutput, { mode: 0o755 });
   fs.chmodSync(existingContextToolsOutput, 0o755);
   assertRunnerRejectsExistingOutput(
-    "benchmark-opencode-context-tools.mjs",
+    "benchmark-omp-context-tools.mjs",
     [
       "--task-file",
       path.join(externalRoot, "missing-task.md"),
@@ -262,8 +260,6 @@ try {
       existingContextToolsOutput,
       "--model",
       "openai/gpt-5.6-terra",
-      "--tool-node-modules",
-      externalRoot,
       "--validation-command",
       "true",
       "--repeat",
