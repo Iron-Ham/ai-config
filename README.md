@@ -10,7 +10,9 @@ cd ~/Developer/claude-config
 ./setup-omp.sh
 ```
 
-`setup-omp.sh` requires `mise`. It installs and verifies OMP 17.1.2 with Bun 1.3.14, discovers the profile path using `omp config path`, and merges the repository profile into the global configuration. Set `OMP_AGENT_DIR`, `PI_CODING_AGENT_DIR`, or `OMP_CONFIG_PATH` to select an explicit location. The installer creates a private timestamped backup, preserves unmanaged settings, writes atomically, validates the resulting roles, and restores the previous file if validation fails.
+`setup-omp.sh` requires `mise`. It installs and verifies OMP 17.1.2 with Bun 1.3.14, discovers the profile path using `omp config path`, and merges the repository profile into the global configuration. Set `OMP_AGENT_DIR`, `PI_CODING_AGENT_DIR`, or `OMP_CONFIG_PATH` to select an explicit location. The installer creates private timestamped backups, writes atomically, validates the resulting roles and managed agents, and restores the previous configuration and managed agent files if validation fails.
+
+The installer also copies the seven repository-managed agent definitions from `omp/agents/` into `$OMP_AGENT_DIR/agents`: `accessibility_auditor`, `code_reviewer`, `database_optimizer`, `evidence_analyst`, `evidence_reader`, `security_engineer`, and `software_architect`. It replaces only those known files, rejects symlinked managed paths, and leaves unrelated user agent definitions untouched.
 
 Optional macOS dependencies used by OMP's repository tools:
 
@@ -20,9 +22,7 @@ brew install ripgrep ast-grep
 
 ## Managed profile
 
-`omp/omp.defaults.yml` is the source of truth for the managed global profile. It sets global model roles (`default`, `plan`, `smol`, `slow`, `tiny`, `task`, `commit`, and `advisor`), enables the advisor and AST-grep integration, hides thinking blocks, and enables OMP's `xdev` tools with built-in documentation. It contains no credentials. The merge keeps unrelated user configuration and custom task settings intact.
-
-## Local launcher
+`omp/omp.defaults.yml` is the source of truth for the managed global profile. It sets global model roles (`default`, `plan`, `smol`, `slow`, `tiny`, `task`, `commit`, and `advisor`), enables the advisor and AST-grep integration, hides thinking blocks, and enables OMP's `xdev` tools with built-in documentation. The seven managed read-only agent definitions are sourced from `omp/agents/` and installed under the selected OMP agent directory. They contain no credentials; the merge keeps unrelated user configuration, custom task settings, and unmanaged agent definitions intact.
 
 Use this dispatcher when work inside the local Notion checkout should run through its local wrapper; all other directories use global OMP. Explicit approval flags are preserved, and unattended invocations default to `--yolo`.
 
@@ -99,4 +99,4 @@ Run the focused deterministic test after changing the installer or managed profi
 bun scripts/test-omp-pi-config.mjs
 ```
 
-The test exercises profile parsing, credential-free merging, unmanaged-setting preservation, explicit and discovered paths, file permissions, backup creation, and rollback on validation failure.
+The test validates all seven repository sources and their OMP frontmatter, installs each definition from its exact source content, preserves an unrelated user agent and unmanaged settings, checks explicit and discovered paths and file permissions, and verifies configuration plus managed-agent rollback on validation failure. It uses local stubs and does not make real model calls.
