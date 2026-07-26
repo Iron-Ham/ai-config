@@ -1,91 +1,42 @@
-# OpenCode Config
+# OMP Configuration
 
-Personal OpenCode TUI configuration: global instructions, agents, commands, skills, managed defaults, plugins, and validation.
+Personal configuration for [Oh My Pi (OMP)](https://github.com/can1357/oh-my-pi), including a safe global-profile installer, managed defaults, and a focused regression test.
 
-## Install
+## Setup
 
 ```bash
 git clone git@github.com:Iron-Ham/claude-config.git ~/Developer/claude-config
 cd ~/Developer/claude-config
-./setup-opencode.sh
 ./setup-omp.sh
 ```
 
-The OpenCode installer requires `python3`, `bun`, and `opencode`; the OMP installer requires `mise` and runs OMP through Bun 1.3.14. Configure workspace-specific plugins and dependencies separately.
+`setup-omp.sh` requires `mise`. It installs and verifies OMP 17.1.2 with Bun 1.3.14, discovers the profile path using `omp config path`, and merges the repository profile into the global configuration. Set `OMP_AGENT_DIR`, `PI_CODING_AGENT_DIR`, or `OMP_CONFIG_PATH` to select an explicit location. The installer creates a private timestamped backup, preserves unmanaged settings, writes atomically, validates the resulting roles, and restores the previous file if validation fails.
 
-On macOS, install the optional command-line tools used by this configuration:
+Optional macOS dependencies used by OMP's repository tools:
 
 ```bash
 brew install ripgrep ast-grep
-brew install vjeantet/tap/alerter
 ```
 
-`ripgrep` and `ast-grep` are runtime dependencies of the managed `glob`,
-`grep`, and `ast_grep` tools. `alerter` provides native task notifications.
+## Managed profile
 
-`setup-opencode.sh` manages `${OPENCODE_CONFIG_DIR:-~/.config/opencode}`. It links repository-owned instructions, agents, commands, and skills; copies plugins and TUI support; merges managed JSON defaults; preserves unrelated local configuration; backs up replacements; and rolls back the active configuration if a late validation fails. Restart OpenCode after installation.
+`omp/omp.defaults.yml` is the source of truth for the managed global profile. It sets global model roles (`default`, `plan`, `smol`, `slow`, `tiny`, `task`, `commit`, and `advisor`), enables the advisor and AST-grep integration, hides thinking blocks, and enables OMP's `xdev` tools with built-in documentation. It contains no credentials. The merge keeps unrelated user configuration and custom task settings intact.
 
-`setup-omp.sh` manages the global OMP profile at `~/.omp/agent/config.yml` (inside the agent directory reported by `omp config path`). It installs and verifies OMP 17.1.2 through `mise exec bun@1.3.14`, avoiding project-local Bun versions. It applies the small repo-managed profile through an atomic, offline merge and asks OMP to parse the resulting roles. Existing OMP settings and model roles are preserved except for the explicitly managed `default`, `plan`, `smol`, `slow`, `tiny`, `task`, `commit`, and `advisor` roles, the enabled GPT-5.6 Sol High advisor, and hidden TUI thinking blocks. No credentials are read or written.
-The managed role map uses Terra XHigh for `default` and `plan`, Terra High for `task`, Luna High for `smol`, Sol High for `slow` and `advisor`, Luna Low for `tiny`, and Kimi K2.7 Code through Baseten for `commit`.
+## Local launcher
 
-## Managed Surface
-
-| Path | Purpose |
-|---|---|
-| `AGENTS.md` | Global OpenCode operating instructions |
-| `opencode/opencode.defaults.json` | Managed OpenCode defaults, model routes, and permissions |
-| `opencode/control-plane-policy.md` | Observe-only route-policy contract and implementation boundary |
-| `opencode/agents/` | Reviewed specialist and evidence subagents |
-| `opencode/agent-sources/` | Source prompts for generated specialist agents |
-| `opencode/commands/` | Managed command templates when configured |
-| `opencode/plugins/` | Notifications, workflow guards, and total-cost TUI support |
-| `opencode/tui/` | Shared support code for TUI plugins |
-| `opencode/*.defaults.json` | Managed JSON merged with local configuration |
-| `omp/omp.defaults.yml` | Managed global OMP model, display, task, advisor, and tool defaults |
-| `skills/` | Global skills installed directly into OpenCode |
-| `scripts/` | Generation, merge, installation, and regression checks, including OMP |
-| `setup-omp.sh` | Safe global OMP profile installer |
-| `reports/opencode-model-routing/` | Evidence behind the shipped model-routing choices |
-
-## Launch Behavior
-
-Enable Code Mode, native Auto mode, and local LSP navigation through a shell dispatcher. The local Notion CLI runs under `mise`'s installed `node@22.13.1`, so its shim does not require a global Node default. Do not alias `opencode` directly with `--auto`; the flag must follow `run` when that subcommand is used.
+Use this dispatcher when work inside the local Notion checkout should run through its local wrapper; all other directories use global OMP. Explicit approval flags are preserved, and unattended invocations default to `--yolo`.
 
 ```zsh
-export OPENCODE_EXPERIMENTAL_CODE_MODE=true
-export OPENCODE_EXPERIMENTAL_LSP_TOOL=true
-export OPENCODE_DISABLE_LSP_DOWNLOAD=true
-export OPENCODE_ENABLE_EXA=1
 _run_notion_local_or_command() {
-	local tool="$1"
-	shift
-
-	if command -v mise >/dev/null 2>&1; then
-		command mise exec node@22.13.1 -- notion local "$tool" "$@"
-	else
-		command "$tool" "$@"
-	fi
+  local tool="$1"
+  shift
+  if command -v mise >/dev/null 2>&1; then
+    command mise exec node@22.13.1 -- notion local "$tool" "$@"
+  else
+    command "$tool" "$@"
+  fi
 }
 
-opencode() {
-	local first="${1:-}"
-	if [[ "$first" == "run" ]]; then
-		_run_notion_local_or_command opencode run --auto "${@:2}"
-		return
-	fi
-
-	if [[ -z "$first" || "$first" == -* || "$first" == */* || -d "$first" ]]; then
-		_run_notion_local_or_command opencode --auto "$@"
-		return
-	fi
-
-	_run_notion_local_or_command opencode "$@"
-}
-```
-
-Use the following Pi dispatcher in your shell. It runs the local Notion wrapper from inside `notion-next` and otherwise runs global OMP. Explicit OMP approval flags are preserved without adding a second approval flag.
-
-```zsh
 pi() {
   local notion_next_dir="${NOTION_NEXT_DIR:-$HOME/Developer/Notion/notion-next}"
   local approval_flag=false
@@ -112,63 +63,40 @@ pi() {
 }
 ```
 
-Use `opencode --no-auto` or `opencode run --no-auto ...` when a session must require approval. The managed configuration enables built-in LSP support while preserving an explicit machine-local `lsp: false` or server configuration. SourceKit feedback is advisory; repository builds, tests, and runtime validation remain authoritative.
+## OMP benchmarks
 
-## Model And Delegation Policy
+The retained benchmark runners are OMP-native:
 
-The primary model, `plan`, and `explore` default to GPT-5.6 Terra without a fixed reasoning variant. Explore is pinned to that baseline so a premium invoking model does not propagate to routine reconnaissance. `build`, `general`, and the model-inheriting reviewed specialists use the invoking controller's model unless a developer explicitly sets an override in `model-routing.config.local.json`.
+- `scripts/benchmark-omp-model-pairs.mjs`
+- `scripts/benchmark-omp-swift-implementers.mjs`
+- `scripts/benchmark-omp-context-tools.mjs`
 
-`luna_implementer` is the fixed exception: an opt-in, subagent-only GPT-5.6 Luna High lane for small, isolated, reversible changes. It is not an automatic route or a command. It autonomously discovers the narrow source boundary and focused validation command from the request and repository instructions. Luna can run repository-local validation, including platform-native tooling and project-specific CLIs, under the same project-tooling trust boundary as other code implementers. The controller retains task decomposition, integration, and final review.
+They share `scripts/omp-benchmark-runtime.mjs` and
+`scripts/summarize-omp-paired-trials.mjs`. Model runs are explicit and manual
+and may incur provider cost. Keep raw benchmark results outside this
+repository (for example, under `/tmp`).
 
-`sol_high` is an opt-in, subagent-only GPT-5.6 Sol High lane for complex implementation slices that warrant frontier reasoning. It is not an automatic route, fallback, or command. It establishes the delegated source boundary, relevant invariants, integration points, and focused validation before changing code. The controller retains task decomposition, integration, and final review.
-
-`luna_reader` is a separate opt-in, subagent-only GPT-5.6 Luna Medium lane for an independent source-research workstream. It is not an automatic `explore` route or a command. It establishes an investigation and practical search boundary from the request, then returns a compact source-grounded `path:line` evidence digest while the controller continues non-overlapping work or needs the context compression.
-
-`evidence_reader` is the analogous opt-in, model-inheriting evidence-gathering subagent. It is for broad bounded source and artifact research, not final validation; `evidence_analyst` remains restricted to an exact claim checklist and already-produced artifacts.
-
-In the managed global configuration, `build` may delegate to any subagent. `general` may delegate only to `code_reviewer` for a bounded, read-only review. `plan` may edit only `*.md` files. The reviewer still requires a concrete source boundary.
-
-The local routing file is private and has this shape:
-
-```json
-{
-  "policy_adapter_enabled": true,
-  "agents": {},
-  "steps": {}
-}
-```
-
-The observe-only policy adapter uses the `policy_adapter_enabled` kill switch; disabling it leaves ordinary OpenCode model selection unchanged.
-
-Run `bun scripts/opencode-doctor.mjs` for read-only local diagnostics of managed plugin installation, compaction inheritance, private routing configuration, and redacted compaction observation records. Use `--json` for automation or `--config-dir <path>` to inspect a non-default installation.
-
-The doctor also reports compaction retention settings, configured tool-output bounds, and the static compaction threshold for the active model (`input limit - reserved tokens`). These are configuration diagnostics, not measurements of prompt quality. For multi-result tools and MCP calls, aggregate or filter records before returning them to reduce transcript growth.
-
-## Verify Changes
-
-Regenerate and validate generated agents after changing an agent source:
+Run all deterministic profile and benchmark regression checks locally:
 
 ```bash
-python3 scripts/generate-opencode-agents.py
-python3 scripts/generate-opencode-agents.py --check
+for test in $(printf '%s\n' scripts/test-*.mjs | LC_ALL=C sort); do
+  bun "$test"
+done
 ```
 
-Run the focused regression suite before committing configuration changes:
+The deterministic benchmark checks are `scripts/test-omp-benchmark-runtime.mjs`,
+`scripts/test-omp-benchmark-pricing.mjs`,
+`scripts/test-benchmark-omp-context-tools.mjs`, and
+`scripts/test-benchmark-output-containment.mjs`; the loop also runs
+`scripts/test-omp-pi-config.mjs` for the OMP profile and does not invoke a
+model benchmark.
+
+## Verify changes
+
+Run the focused deterministic test after changing the installer or managed profile:
 
 ```bash
-bun scripts/test-opencode-policy-resolver.mjs
-bun scripts/test-opencode-config.mjs
-bun scripts/test-opencode-compaction-observability.mjs
-bun scripts/test-opencode-doctor.mjs
-bun scripts/test-opencode-delegation-guard.mjs
-bun scripts/test-opencode-context-tools-secret-filter.mjs
-bun scripts/test-opencode-total-cost.mjs
 bun scripts/test-omp-pi-config.mjs
-bun scripts/test-opencode-notion-assets.mjs
-bun scripts/test-setup-opencode-transaction.mjs
-bun scripts/test-opencode-benchmark-runtime.mjs
-bun scripts/test-opencode-benchmark-pricing.mjs
-bun scripts/test-benchmark-output-containment.mjs
 ```
 
-The first two checks that resolve OpenCode configuration require the OpenCode CLI. The installer performs generation, merge, and installed-asset validation before it changes the active configuration.
+The test exercises profile parsing, credential-free merging, unmanaged-setting preservation, explicit and discovered paths, file permissions, backup creation, and rollback on validation failure.

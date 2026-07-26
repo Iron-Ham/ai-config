@@ -203,16 +203,9 @@ export function benchmarkInstructionManifest(cwd) {
   }];
 }
 
-export function benchmarkConfigWithProviders(cwd, benchmarkConfig) {
+export function benchmarkConfigOverlay(cwd, benchmarkConfig = {}) {
   const config = structuredClone(benchmarkConfig);
-  // Provider definitions are part of the benchmark protocol. Never merge a
-  // project, global, or caller-supplied provider because it could redirect a
-  // supposedly matched route to different code or an arbitrary endpoint.
-  config.provider = clonedTrustedProviders();
-  // Project config loading is disabled at runtime. Preserve the root workload
-  // contract explicitly without trusting project opencode.json content.
-  config.instructions = benchmarkInstructionManifest(cwd)
-    .map((instruction) => instruction.path);
+  config.instructions = benchmarkInstructionManifest(cwd).map((instruction) => instruction.path);
   return JSON.stringify(config);
 }
 
@@ -229,73 +222,38 @@ function validatedJsonObject(source, label) {
   return source;
 }
 
-export function loadOpenCodeAuthContent({
-  env = process.env,
-  dataHome = env.XDG_DATA_HOME ?? path.join(os.homedir(), ".local", "share"),
-} = {}) {
-  if (Object.hasOwn(env, "OPENCODE_AUTH_CONTENT")) {
-    return validatedJsonObject(
-      env.OPENCODE_AUTH_CONTENT,
-      "OPENCODE_AUTH_CONTENT",
+export function loadOmpAuthContent() {
+  // OMP credentials are owned by its auth broker/profile. Never read, copy,
+  // or mutate them from a benchmark; this marker exists only for provenance.
+  return "{}";
+}
+
+export function assertParallelModelAuthSafe({ concurrency }) {
+  if (concurrency > 1) {
+    throw new Error(
+      "Parallel benchmark routes are disabled because OMP OAuth refresh safety cannot be independently verified; run with --concurrency 1.",
     );
   }
-  const authPath = path.join(dataHome, "opencode", "auth.json");
-  const entry = fs.lstatSync(authPath, { throwIfNoEntry: false });
-  if (!entry) return "{}";
-  if (!entry.isFile() || entry.isSymbolicLink()) {
-    throw new Error(`OpenCode auth path must be a regular file: ${authPath}`);
-  }
-  return validatedJsonObject(fs.readFileSync(authPath, "utf8"), authPath);
 }
 
-export function assertParallelModelAuthSafe({
-  authContent,
-  concurrency,
-  models,
-}) {
-  if (concurrency <= 1) return;
-
-  const auth = JSON.parse(validatedJsonObject(
-    authContent,
-    "OpenCode auth content",
-  ));
-  const selectedProviders = new Set(models.map((model) => {
-    const separator = model.indexOf("/");
-    if (separator <= 0) {
-      throw new Error(`Invalid OpenCode model identifier: ${model}`);
-    }
-    return model.slice(0, separator);
-  }));
-  const oauthProviders = [...selectedProviders]
-    .filter((provider) => auth[provider]?.type === "oauth")
-    .sort();
-  if (oauthProviders.length === 0) return;
-
-  throw new Error(
-    `Parallel benchmark routes cannot use OAuth-backed providers (${oauthProviders.join(", ")}): cloned auth homes cannot safely coordinate refresh-token rotation. Run these routes with --concurrency 1 or use non-OAuth provider credentials.`,
-  );
-}
-
-export function isolatedOpenCodeEnvironment({
+export function isolatedOmpEnvironment({
   baseEnv = process.env,
   configContent,
   configHome,
   dataHome,
-  authContent,
   cwd,
 }) {
   const env = { ...baseEnv };
   for (const name of [
+    "OMP_PROFILE",
+    "PI_CODING_AGENT_DIR",
+    "OMP_CONFIG",
+    "OMP_CONFIG_CONTENT",
+    "OMP_MODELS_PATH",
+    "OMP_MODELS_URL",
     "ANTHROPIC_BASE_URL",
     "OPENAI_BASE_URL",
     "OPENAI_CUSTOM_HEADERS",
-    "OPENCODE_CONFIG",
-    "OPENCODE_CONFIG_CONTENT",
-    "OPENCODE_CONFIG_DIR",
-    "OPENCODE_MODELS_PATH",
-    "OPENCODE_MODELS_URL",
-    "OPENCODE_TEST_HOME",
-    "OPENCODE_TEST_MANAGED_CONFIG_DIR",
   ]) {
     delete env[name];
   }
@@ -305,12 +263,77 @@ export function isolatedOpenCodeEnvironment({
     INIT_CWD: cwd,
     XDG_CONFIG_HOME: configHome,
     XDG_DATA_HOME: dataHome,
-    OPENCODE_AUTH_CONTENT: authContent,
-    OPENCODE_CONFIG_CONTENT: configContent,
-    OPENCODE_CONFIG_DIR: path.join(configHome, "opencode"),
-    OPENCODE_DISABLE_PROJECT_CONFIG: "true",
+    PI_CODING_AGENT_DIR: dataHome,
+    OMP_BENCHMARK_CONFIG: configContent,
   };
 }
+
+export function buildOmpCommand({
+  cwd,
+  model,
+  prompt,
+  thinking = "auto",
+  tools = "read,glob,grep",
+  configPath,
+}) {
+  const command = [
+    "omp", "-p", "--mode", "json", "--cwd", cwd, "--model", model,
+    "--thinking", thinking,
+  ];
+  if (configPath) command.push("--config", configPath);
+  command.push("--no-session", "--tools", Array.isArray(tools) ? tools.join(",") : tools, "--no-pty", prompt);
+  return command;
+}
+
+export function parseOmpEvents(source) {
+  const events = [];
+  for (const line of String(source).split("\n")) {
+    if (!line.trim()) continue;
+    let values;
+    try {
+      const parsed = JSON.parse(line);
+      values = Array.isArray(parsed) ? parsed : [parsed];
+    } catch (error) {
+      if (line.trim().startsWith("{")) throw new Error("Malformed OMP JSON event", { cause: error });
+      continue;
+    }
+    for (const event of values) {
+      const type = event.type;
+      if (type === "message_update" && event.assistantMessageEvent?.type === "text_delta") {
+        events.push({ type: "text", timestamp: event.timestamp, part: { text: event.assistantMessageEvent.delta } });
+      } else if (type === "tool_execution_start") {
+        events.push({ type: "tool_use", timestamp: event.timestamp, part: { tool: event.toolName, state: { input: event.args ?? event.input ?? {}, time: { start: event.timestamp } } } });
+      } else if (type === "turn_start") {
+        events.push({ type: "step_start", timestamp: event.timestamp });
+      } else if (type === "turn_end" || type === "agent_end") {
+        events.push({ type: "step_finish", timestamp: event.timestamp, part: { reason: "stop", tokens: event.usage } });
+      } else {
+        events.push(event);
+      }
+    }
+  }
+  return events;
+}
+
+export function parseOmpModelCatalog(source) {
+  let parsed;
+  try {
+    parsed = typeof source === "string" ? JSON.parse(source) : source;
+  } catch (error) {
+    throw new Error("OMP model catalog must be valid JSON", { cause: error });
+  }
+  const models = Array.isArray(parsed) ? parsed : parsed?.models;
+  if (!Array.isArray(models)) throw new Error("OMP model catalog must contain a models array");
+  const result = new Map();
+  for (const model of models) {
+    const fullModel = model.selector ?? `${model.provider}/${model.id}`;
+    if (!fullModel.includes("/")) throw new Error(`Invalid model identifier in OMP catalog: ${fullModel}`);
+    if (result.has(fullModel)) throw new Error(`OMP catalog contains duplicate model ${fullModel}`);
+    result.set(fullModel, model);
+  }
+  return result;
+}
+
 
 function milliseconds(value) {
   return Number.isFinite(value) ? Number(value) : undefined;
@@ -501,116 +524,51 @@ export function recomputedRequestCost(event, model) {
   ) / 1_000_000;
 }
 
-function jsonObjectEnd(source, start) {
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-  for (let index = start; index < source.length; index += 1) {
-    const character = source[index];
-    if (inString) {
-      if (escaped) escaped = false;
-      else if (character === "\\") escaped = true;
-      else if (character === '"') inString = false;
-      continue;
-    }
-    if (character === '"') inString = true;
-    else if (character === "{") depth += 1;
-    else if (character === "}") {
-      depth -= 1;
-      if (depth === 0) return index + 1;
-    }
-  }
-  throw new Error("Verbose OpenCode model catalog contains incomplete JSON");
-}
-
-export function parseVerboseModelCatalog(source) {
-  const result = new Map();
-  let cursor = 0;
-  while (cursor < source.length) {
-    while (/\s/u.test(source[cursor] ?? "")) cursor += 1;
-    if (cursor >= source.length) break;
-    const lineEnd = source.indexOf("\n", cursor);
-    if (lineEnd === -1) {
-      throw new Error("Verbose OpenCode model catalog ended before model JSON");
-    }
-    const fullModel = source.slice(cursor, lineEnd).trim();
-    if (!fullModel.includes("/")) {
-      throw new Error(`Invalid model identifier in verbose catalog: ${fullModel}`);
-    }
-    const objectStart = source.indexOf("{", lineEnd + 1);
-    if (objectStart === -1) {
-      throw new Error(`Verbose catalog has no JSON for ${fullModel}`);
-    }
-    const objectEnd = jsonObjectEnd(source, objectStart);
-    if (result.has(fullModel)) {
-      throw new Error(`Verbose catalog contains duplicate model ${fullModel}`);
-    }
-    result.set(fullModel, JSON.parse(source.slice(objectStart, objectEnd)));
-    cursor = objectEnd;
-  }
-  return result;
-}
-
 function routeRecord(fullModel, model) {
   const record = {
     full_model: fullModel,
-    provider_id: model.providerID,
-    model_id: model.id,
-    api: {
-      id: model.api?.id ?? null,
-      url: model.api?.url ?? null,
-      npm: model.api?.npm ?? null,
-    },
-    status: model.status ?? null,
+    provider_id: model.provider ?? fullModel.split("/", 1)[0],
+    model_id: model.id ?? fullModel.slice(fullModel.indexOf("/") + 1),
+    api: model.api ?? null,
+    status: model.status ?? "available",
     cost: model.cost ?? null,
-    limits: model.limit ?? null,
-    variants: model.variants ?? {},
-    capabilities: model.capabilities ?? null,
+    limits: {
+      context: model.contextWindow ?? null,
+      output: model.maxTokens ?? null,
+    },
+    variants: Object.fromEntries(
+      (model.thinking ?? []).map((thinking) => [thinking, { reasoningEffort: thinking }]),
+    ),
+    capabilities: {
+      toolcall: Array.isArray(model.input) ? model.input.includes("text") : true,
+    },
   };
   return {
     ...record,
-    sha256: createHash("sha256")
-      .update(JSON.stringify(canonicalValue(record)))
-      .digest("hex"),
+    sha256: createHash("sha256").update(JSON.stringify(canonicalValue(record))).digest("hex"),
   };
 }
 
 function canonicalValue(value) {
   if (Array.isArray(value)) return value.map(canonicalValue);
   if (!isPlainObject(value)) return value;
-  return Object.fromEntries(
-    Object.keys(value).sort().map((key) => [key, canonicalValue(value[key])]),
-  );
+  return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonicalValue(value[key])]));
 }
 
 export function resolveBenchmarkModelRoute(catalogSource, { model, variant }) {
-  const catalog = parseVerboseModelCatalog(catalogSource);
+  const catalog = parseOmpModelCatalog(catalogSource);
   const entry = catalog.get(model);
-  if (!entry) {
-    throw new Error(`Exact benchmark model is absent from OpenCode catalog: ${model}`);
+  if (!entry) throw new Error(`Exact benchmark model is absent from OMP catalog: ${model}`);
+  const providerID = model.split("/", 1)[0];
+  if ((entry.provider ?? providerID) !== providerID) {
+    throw new Error(`Catalog provider mismatch for ${model}: ${entry.provider ?? "missing"}`);
   }
-  const [providerID, ...modelParts] = model.split("/");
-  const modelID = modelParts.join("/");
-  if (entry.providerID !== providerID) {
-    throw new Error(
-      `Catalog provider mismatch for ${model}: ${entry.providerID ?? "missing"}`,
-    );
-  }
-  if (variant && !Object.hasOwn(entry.variants ?? {}, variant)) {
-    throw new Error(`Model ${model} does not expose requested variant ${variant}`);
-  }
-  const expectedApi = EXPECTED_COMPATIBLE_APIS[providerID];
-  if (expectedApi) {
-    if (
-      entry.id !== modelID ||
-      entry.api?.id !== modelID ||
-      entry.api?.npm !== expectedApi.npm ||
-      entry.api?.url !== expectedApi.url
-    ) {
-      throw new Error(
-        `Pinned ${providerID} route ${model} resolved to an unexpected API definition`,
-      );
-    }
+  if (variant && (
+    Array.isArray(entry.thinking)
+      ? !entry.thinking.includes(variant)
+      : !Object.hasOwn(entry.variants ?? {}, variant)
+  )) {
+    throw new Error(`Model ${model} does not expose requested thinking level ${variant}`);
   }
   return routeRecord(model, entry);
 }
