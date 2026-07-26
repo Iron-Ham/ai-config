@@ -17,6 +17,15 @@ These instructions apply to work in this repository. More-specific `AGENTS.md` f
 - Treat model and subagent output as suggestions; reconcile it with repository evidence and deterministic validation.
 - Prefer structured results that identify findings, changed files, and remaining uncertainty. Do not forward secrets or unrelated context.
 
+### Herdr-managed OMP subagents
+
+- Treat Herdr as required for subagent work. Verify `HERDR_ENV=1` before controlling panes; if it is absent, stop and report the missing Herdr session rather than falling back to the native `task` tool.
+- Keep the controller in its current pane and working directory. Split one clean sibling pane per subagent with `herdr pane split --current --direction right --cwd "$PWD" --no-focus`, choosing `down` only when the current pane is narrow or tall.
+- Start registered OMP agents through `herdr agent start`, not `herdr pane run`. Parse the returned pane ID, keep the agent name unique, and use `herdr agent prompt`, `herdr agent wait`, and `herdr agent read` to submit, observe, and collect work.
+- Default bounded, low-cost work to `herdr agent start <name> --kind omp --pane <pane-id> -- --model baseten/moonshotai/Kimi-K2.7-Code`. Do not use `--kind kimi` for this workflow; use the OMP agent with the explicit Kimi model. Choose a more capable model only when the assignment requires it.
+- The `omp` shell function starts `notion local pi` without changing the pane's `$PWD`. Each Herdr agent has a separate Pi session, so its prompt must contain the task, relevant context, acceptance criteria, and any required file paths; it does not inherit the controller's transcript, todos, or active-agent registry.
+- Read the final agent result before closing a pane created for one-off work. Never close a user-created pane or change focus unless the user asks.
+
 ## Editing and Safety
 
 - Use repository-aware search, read, and edit tools for retrieval and changes; use shell commands for execution, validation, and Git operations.
