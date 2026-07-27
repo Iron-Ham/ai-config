@@ -165,7 +165,7 @@ exec "$TEST_BUN_BIN" "$@"
 set -eu
 printf '%s\n' "$*" >> "$OMP_CALL_LOG"
 if [ "$1" = --version ]; then
-  printf '%s\n' 'omp/17.1.2'
+  printf '%s\n' "omp/\${STUB_OMP_VERSION:-17.1.4}"
   exit 0
 fi
 if [ "$1" = config ] && [ "$2" = path ]; then
@@ -244,6 +244,27 @@ fi
   const calls = fs.readFileSync(callLog, "utf8");
   assert.match(calls, /config get modelRoles/);
   assert.match(fs.readFileSync(miseLog, "utf8"), /exec bun@1\.3\.14 -- omp --version/);
+
+  const newerRuntimeLogOffset = fs.statSync(miseLog).size;
+  const newerRuntime = Bun.spawnSync(["bash", path.join(repoRoot, "setup-omp.sh")], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: homeDir,
+      OMP_MISE_BIN: path.join(stubBin, "mise"),
+      OMP_CALL_LOG: callLog,
+      MISE_CALL_LOG: miseLog,
+      STUB_OMP_VERSION: "17.1.5",
+      TEST_BUN_BIN: process.execPath,
+      STUB_AGENT_DIR: configDir,
+      PATH: `${stubBin}:${process.env.PATH}`,
+    },
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  assert.equal(newerRuntime.exitCode, 0, newerRuntime.stderr.toString());
+  const newerRuntimeMiseCalls = fs.readFileSync(miseLog, "utf8").slice(newerRuntimeLogOffset);
+  assert.doesNotMatch(newerRuntimeMiseCalls, /-- bun install --global/);
 
   const customTaskConfig = path.join(testRoot, "custom-task", "config.yml");
   writeFile(customTaskConfig, [

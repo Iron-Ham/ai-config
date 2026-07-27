@@ -5,7 +5,7 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 OMP_BUN_VERSION="1.3.14"
-OMP_VERSION="17.1.2"
+OMP_MIN_VERSION="17.1.4"
 MANAGED_AGENT_NAMES=(
   accessibility_auditor
   code_reviewer
@@ -77,15 +77,50 @@ run_bun() {
   "$MISE_BIN" exec "bun@$OMP_BUN_VERSION" -- bun "$@"
 }
 
+omp_version_at_least() {
+  local candidate="$1"
+  local minimum="$2"
+  local candidate_major candidate_minor candidate_patch
+  local minimum_major minimum_minor minimum_patch
+
+  if [[ ! "$candidate" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)([-+].*)?$ ]]; then
+    return 1
+  fi
+  candidate_major="${BASH_REMATCH[1]}"
+  candidate_minor="${BASH_REMATCH[2]}"
+  candidate_patch="${BASH_REMATCH[3]}"
+  if [[ ! "$minimum" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+    return 1
+  fi
+  minimum_major="${BASH_REMATCH[1]}"
+  minimum_minor="${BASH_REMATCH[2]}"
+  minimum_patch="${BASH_REMATCH[3]}"
+
+  if ((10#$candidate_major != 10#$minimum_major)); then
+    ((10#$candidate_major > 10#$minimum_major))
+    return
+  fi
+  if ((10#$candidate_minor != 10#$minimum_minor)); then
+    ((10#$candidate_minor > 10#$minimum_minor))
+    return
+  fi
+  ((10#$candidate_patch >= 10#$minimum_patch))
+}
+
 ensure_omp() {
-  if [ "$(run_omp --version 2>/dev/null || true)" = "omp/$OMP_VERSION" ]; then
+  local installed_version
+  installed_version="$(run_omp --version 2>/dev/null || true)"
+  installed_version="${installed_version#omp/}"
+  if omp_version_at_least "$installed_version" "$OMP_MIN_VERSION"; then
     return
   fi
 
-  echo "Installing @oh-my-pi/pi-coding-agent@$OMP_VERSION with Bun $OMP_BUN_VERSION"
-  "$MISE_BIN" exec "bun@$OMP_BUN_VERSION" -- bun install --global "@oh-my-pi/pi-coding-agent@$OMP_VERSION"
-  if [ "$(run_omp --version 2>/dev/null || true)" != "omp/$OMP_VERSION" ]; then
-    echo "ERROR  OMP $OMP_VERSION was not installed" >&2
+  echo "Installing @oh-my-pi/pi-coding-agent@$OMP_MIN_VERSION with Bun $OMP_BUN_VERSION"
+  "$MISE_BIN" exec "bun@$OMP_BUN_VERSION" -- bun install --global "@oh-my-pi/pi-coding-agent@$OMP_MIN_VERSION"
+  installed_version="$(run_omp --version 2>/dev/null || true)"
+  installed_version="${installed_version#omp/}"
+  if ! omp_version_at_least "$installed_version" "$OMP_MIN_VERSION"; then
+    echo "ERROR  OMP $OMP_MIN_VERSION or newer was not installed" >&2
     exit 1
   fi
 }
