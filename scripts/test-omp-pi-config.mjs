@@ -100,7 +100,7 @@ try {
     smol: "openai/gpt-5.6-luna:high",
     slow: "openai/gpt-5.6-sol:high",
     tiny: "openai/gpt-5.6-luna:medium",
-    task: "openai/gpt-5.6-luna:max",
+    task: "openai/gpt-5.6-terra:high",
     commit: "baseten/moonshotai/Kimi-K2.7-Code",
     advisor: "openai/gpt-5.6-sol:high",
   });
@@ -199,7 +199,7 @@ fi
   assert.equal(installed.modelRoles.advisor, "openai/gpt-5.6-sol:high");
   assert.equal(installed.modelRoles.commit, "baseten/moonshotai/Kimi-K2.7-Code");
   assert.equal(installed.modelRoles.smol, "openai/gpt-5.6-luna:high");
-  assert.equal(installed.modelRoles.task, "openai/gpt-5.6-luna:max");
+  assert.equal(installed.modelRoles.task, "openai/gpt-5.6-terra:high");
   assert.equal(installed.task, undefined);
   assert.equal(installed.advisor.enabled, true);
   assert.equal(installed.hideThinkingBlock, true);
