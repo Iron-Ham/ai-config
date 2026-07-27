@@ -4,6 +4,12 @@ Personal configuration for [Oh My Pi (OMP)](https://github.com/can1357/oh-my-pi)
 
 ## Setup
 
+Herdr is required for delegated OMP agents. Install it before configuring this repository:
+
+```bash
+curl -fsSL https://herdr.dev/install.sh | sh
+```
+
 ```bash
 git clone git@github.com:Iron-Ham/claude-config.git ~/Developer/claude-config
 cd ~/Developer/claude-config
