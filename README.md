@@ -72,22 +72,29 @@ pi() {
 
 omp() {
   local OMP_LOCAL_PI=true
+  local PI_CONFIG_FILES="$HOME/Developer/claude-config/omp/omp.defaults.yml${PI_CONFIG_FILES:+:$PI_CONFIG_FILES}"
+  export PI_CONFIG_FILES
   pi "$@"
 }
 ```
 
-`omp` invokes the existing `pi()` function with a function-local `OMP_LOCAL_PI=true`, so `pi` uses `notion local pi` while retaining the original working directory and every argument boundary.
+`omp` invokes the existing `pi()` function with a function-local `OMP_LOCAL_PI=true`, so `pi` uses `notion local pi` while retaining the original working directory and every argument boundary. Notion prepends its defaults; this repository's profile follows them, and inherited user overlays remain last to override defaults when explicitly configured.
 
 ### Delegating through Herdr
 
 **OMP only:** Every delegated session in this configuration MUST be an OMP session started with `herdr agent start --kind omp`. NEVER start Codex or invoke `codex` as a fallback. If Herdr or OMP is unavailable, stop and report the blocked dependency.
 
-For a Herdr-managed OMP subagent, create a sibling pane with the harness directory, then start and prompt the recognized agent:
+For a Herdr-managed OMP subagent, create a sibling pane with the harness directory, then set the variables from the returned pane ID before starting and prompting the recognized agent:
 
 ```bash
 herdr pane split --current --direction right --cwd "$PWD" --no-focus
-herdr agent start kimi-hello --kind omp --pane <pane-id> -- --model baseten/moonshotai/Kimi-K2.7-Code
-herdr agent prompt kimi-hello "Say hi in exactly two words." --wait --timeout 120000
+
+agent_name="my-agent"
+pane_id="pane-id-from-command-output"
+model="provider/model"
+task_prompt="Describe the bounded task and acceptance criteria."
+herdr agent start "$agent_name" --kind omp --pane "$pane_id" -- --model "$model"
+herdr agent prompt "$agent_name" "$task_prompt" --wait --timeout 120000
 ```
 
 Herdr keeps the OMP subagent in its own pane and manages it through `herdr agent` commands. The `OMP_LOCAL_PI` flag makes its `omp` process use `notion local pi` while preserving the pane's original `$PWD`, so it works in the same checkout as the harness rather than in the Notion checkout. The agent has its own Pi session and receives the delegated prompt, not the parent OMP conversation, todos, or active-agent registry.

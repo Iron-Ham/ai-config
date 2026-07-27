@@ -118,6 +118,8 @@ try {
   assert.match(readme, /command omp "\$\{args\[@\]\}"/);
   assert.match(readme, /_run_notion_local_or_command pi "\$\{args\[@\]\}"/);
   assert.match(readme, /--approval-mode|--auto-approve|--yolo/);
+  assert.match(readme, /\$HOME\/Developer\/claude-config\/omp\/omp\.defaults\.yml\$\{PI_CONFIG_FILES:\+:\$PI_CONFIG_FILES\}/);
+  assert.match(readme, /export PI_CONFIG_FILES/);
 
   writeFile(configPath, [
     "modelRoles:",
