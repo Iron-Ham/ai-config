@@ -72,13 +72,11 @@ pi() {
 
 omp() {
   local OMP_LOCAL_PI=true
-  local PI_CONFIG_FILES="$HOME/Developer/claude-config/omp/omp.defaults.yml${PI_CONFIG_FILES:+:$PI_CONFIG_FILES}"
-  export PI_CONFIG_FILES
-  pi "$@"
+  pi --config "$HOME/Developer/claude-config/omp/omp.defaults.yml" "$@"
 }
 ```
 
-`omp` invokes the existing `pi()` function with a function-local `OMP_LOCAL_PI=true`, so `pi` uses `notion local pi` while retaining the original working directory and every argument boundary. Notion prepends its defaults; this repository's profile follows them, and inherited user overlays remain last to override defaults when explicitly configured.
+`omp` invokes the existing `pi()` function with a function-local `OMP_LOCAL_PI=true`, so `pi` uses `notion local pi` while retaining the original working directory and every argument boundary. The repository profile is a CLI overlay after Notion and environment overlays; a later user-supplied `--config` can explicitly override it.
 
 ### Delegating through Herdr
 
