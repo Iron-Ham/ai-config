@@ -100,13 +100,14 @@ try {
     smol: "openai/gpt-5.6-luna:high",
     slow: "openai/gpt-5.6-sol:high",
     tiny: "openai/gpt-5.6-luna:medium",
-    task: "openai/gpt-5.6-luna:max",
     commit: "baseten/moonshotai/Kimi-K2.7-Code",
     advisor: "openai/gpt-5.6-sol:high",
   });
   assert.equal(profile.hideThinkingBlock, true);
   assert.deepEqual(profile.advisor, { enabled: true });
-  assert.equal(profile.task, undefined);
+  assert.deepEqual(profile.task, {
+    agentModelOverrides: { task: "openai/gpt-5.6-luna:max" },
+  });
   assert.equal(profile.glob, undefined);
   assert.equal(profile.grep, undefined);
   assert.deepEqual(profile.astGrep, { enabled: true });
@@ -199,12 +200,13 @@ fi
   assert.equal(installed.modelRoles.advisor, "openai/gpt-5.6-sol:high");
   assert.equal(installed.modelRoles.commit, "baseten/moonshotai/Kimi-K2.7-Code");
   assert.equal(installed.modelRoles.smol, "openai/gpt-5.6-luna:high");
-  assert.equal(installed.modelRoles.task, "openai/gpt-5.6-luna:max");
+  assert.deepEqual(installed.task.agentModelOverrides, {
+    task: "openai/gpt-5.6-luna:max",
+  });
   assert.equal(installed.advisor.enabled, true);
   assert.equal(installed.hideThinkingBlock, true);
   assert.equal(installed.unmanaged.apiKey, "do-not-log-or-replace");
   assert.equal(installed.unmanaged.keep, true);
-  assert.equal(installed.task, undefined);
   assert.equal(installed.glob, undefined);
   assert.equal(installed.grep, undefined);
   assert.equal(installed.astGrep.enabled, true);
@@ -268,9 +270,9 @@ fi
 
   const customTaskConfig = path.join(testRoot, "custom-task", "config.yml");
   writeFile(customTaskConfig, [
-    "modelRoles:",
-    "  task: openai/gpt-5.6-sol:high",
     "task:",
+    "  agentModelOverrides:",
+    "    user_local: openai/gpt-5.6-sol:high",
     "  maxConcurrency: 4",
     "  maxRecursionDepth: 3",
     "glob:",
@@ -285,10 +287,10 @@ fi
   ]);
   assert.equal(preservedTask.exitCode, 0, preservedTask.stderr.toString());
   const preservedCustomConfig = Bun.YAML.parse(fs.readFileSync(customTaskConfig, "utf8"));
-  assert.equal(
-    preservedCustomConfig.modelRoles.task,
-    "openai/gpt-5.6-luna:max",
-  );
+  assert.deepEqual(preservedCustomConfig.task.agentModelOverrides, {
+    task: "openai/gpt-5.6-luna:max",
+    user_local: "openai/gpt-5.6-sol:high",
+  });
   assert.equal(preservedCustomConfig.glob.enabled, false);
   assert.equal(preservedCustomConfig.task.maxConcurrency, 4);
   assert.equal(preservedCustomConfig.task.maxRecursionDepth, 3);
