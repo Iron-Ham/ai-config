@@ -32,7 +32,7 @@ brew install ripgrep ast-grep
 
 `omp/omp.defaults.yml` is the source of truth for the managed global profile. It sets global model roles (`default`, `plan`, `smol`, `slow`, `tiny`, `task`, `commit`, and `advisor`), enables the advisor and AST-grep integration, hides thinking blocks, and enables OMP's `xdev` tools with built-in documentation. The seven managed read-only agent definitions are sourced from `omp/agents/` and installed under the selected OMP agent directory. They contain no credentials; the merge keeps unrelated user configuration, custom task settings, and unmanaged agent definitions intact.
 
-Use the `pi` and `omp` dispatchers when work should run through the local Notion wrapper. `pi` uses local Pi only inside the Notion checkout; `omp` forces that local path without changing the caller's directory. Explicit approval flags are preserved, and unattended invocations default to `--yolo`.
+Install these dispatchers in `~/.zshrc`, then start a new shell with `exec zsh`. Use `omp` rather than `pi`, `notion local pi`, or the `omp` binary directly: `omp` forces the local Notion runtime while applying this repository's managed profile after Notion's defaults. Without that final profile overlay, Notion assigns the `task` role to `@smol`.
 
 ```zsh
 _run_notion_local_or_command() {
@@ -77,6 +77,8 @@ omp() {
 ```
 
 `omp` invokes the existing `pi()` function with a function-local `OMP_LOCAL_PI=true`, so `pi` uses `notion local pi` while retaining the original working directory and every argument boundary. The repository profile is a CLI overlay after Notion and environment overlays; a later user-supplied `--config` can explicitly override it.
+
+The managed profile is authoritative for model roles, so change `omp/omp.defaults.yml` rather than `/models` when a role should change permanently. Start a new OMP session after changing the wrapper or profile; existing sessions retain the role map loaded at startup.
 
 ### Delegating through Herdr
 
