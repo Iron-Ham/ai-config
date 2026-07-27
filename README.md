@@ -101,9 +101,10 @@ Herdr keeps the OMP subagent in its own pane and manages it through `herdr agent
 
 ## Local terminal preferences
 
-`setup-omp.sh` does not modify shell or terminal preferences. Add the following to `~/.config/ghostty/config.ghostty` to keep the Command+` quick terminal visible when it loses focus, open it on the display containing the pointer, and match the iTerm Default profile's dark, translucent background:
+`setup-omp.sh` does not modify shell or terminal preferences. Add the following to `~/.config/ghostty/config.ghostty` to use BerkeleyMono Nerd Font Mono, keep the Command+` quick terminal visible when it loses focus, open it on the display containing the pointer, and match the iTerm Default profile's dark, translucent background:
 
 ```text
+font-family = BerkeleyMono Nerd Font Mono
 keybind = global:cmd+grave_accent=toggle_quick_terminal
 quick-terminal-screen = mouse
 quick-terminal-autohide = false
