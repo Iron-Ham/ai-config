@@ -18,6 +18,7 @@ These instructions apply to work in this repository. More-specific `AGENTS.md` f
 - Prefer structured results that identify findings, changed files, and remaining uncertainty. Do not forward secrets or unrelated context.
 
 ### Herdr-managed OMP subagents
+- Delegate only through OMP. NEVER start a Codex session, invoke the `codex` CLI, or use a Codex agent type as a fallback. If Herdr-managed OMP cannot start, report the blocked OMP dependency.
 
 - Treat Herdr as required for subagent work. Verify `HERDR_ENV=1` before controlling panes; if it is absent, stop and report the missing Herdr session rather than falling back to the native `task` tool.
 - Keep the controller in its current pane and working directory. Split one clean sibling pane per subagent with `herdr pane split --current --direction right --cwd "$PWD" --no-focus`, choosing `down` only when the current pane is narrow or tall.

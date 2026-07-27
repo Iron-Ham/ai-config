@@ -60,6 +60,8 @@ const configDir = path.join(homeDir, ".omp", "agent");
 const agentsDir = path.join(configDir, "agents");
 const configPath = path.join(configDir, "config.yml");
 const unmanagedAgentPath = path.join(agentsDir, "user_local.md");
+const globalInstructionPath = path.join(configDir, "AGENTS.md");
+const globalInstructionSource = path.join(repoRoot, "AGENTS.md");
 const stubBin = path.join(testRoot, "bin");
 const callLog = path.join(testRoot, "omp-calls.log");
 const miseLog = path.join(testRoot, "mise-calls.log");
@@ -80,6 +82,13 @@ try {
     assert.equal(sourceStat.isFile(), true, `${sourcePath} must be a regular file`);
     sourceAgentDefinitions.set(name, readAgentDefinition(sourcePath, name));
   }
+
+  const globalInstructionSourceStat = fs.lstatSync(globalInstructionSource, {
+    throwIfNoEntry: false,
+  });
+  assert.ok(globalInstructionSourceStat, `global instruction source is missing: ${globalInstructionSource}`);
+  assert.equal(globalInstructionSourceStat.isSymbolicLink(), false);
+  assert.equal(globalInstructionSourceStat.isFile(), true);
 
   const profile = Bun.YAML.parse(
     fs.readFileSync(path.join(repoRoot, "omp", "omp.defaults.yml"), "utf8"),
@@ -135,6 +144,8 @@ try {
   ].join("\n"));
   const unmanagedAgentContent = "unmanaged user agent\n";
   writeFile(unmanagedAgentPath, unmanagedAgentContent, 0o640);
+  const existingGlobalInstructionContent = "existing global instruction\n";
+  writeFile(globalInstructionPath, existingGlobalInstructionContent, 0o640);
   fs.mkdirSync(stubBin, { recursive: true });
   writeFile(path.join(stubBin, "mise"), `#!/usr/bin/env bash
 set -eu
@@ -201,6 +212,16 @@ fi
   assert.equal(fs.statSync(configPath).mode & 0o077, 0);
   assert.equal(fs.readFileSync(unmanagedAgentPath, "utf8"), unmanagedAgentContent);
   assert.equal(fs.lstatSync(unmanagedAgentPath).mode & 0o777, 0o640);
+  const globalInstructionStat = fs.lstatSync(globalInstructionPath, {
+    throwIfNoEntry: false,
+  });
+  assert.ok(globalInstructionStat, "global OMP instruction link was not installed");
+  assert.equal(globalInstructionStat.isSymbolicLink(), true);
+  assert.equal(fs.readlinkSync(globalInstructionPath), globalInstructionSource);
+  assert.equal(
+    fs.readFileSync(globalInstructionPath, "utf8"),
+    fs.readFileSync(globalInstructionSource, "utf8"),
+  );
   for (const name of managedAgentNames) {
     const installedAgentPath = path.join(agentsDir, `${name}.md`);
     const installedStat = fs.lstatSync(installedAgentPath, { throwIfNoEntry: false });
@@ -218,7 +239,7 @@ fi
   for (const name of ["luna_implementer", "luna_reader", "sol_high"]) {
     assert.equal(fs.existsSync(path.join(agentsDir, `${name}.md`)), false);
   }
-  assert.equal(fs.readdirSync(path.join(configDir, "backups", "setup-omp")).length, 1);
+  assert.equal(fs.readdirSync(path.join(configDir, "backups", "setup-omp")).length, 2);
   const calls = fs.readFileSync(callLog, "utf8");
   assert.match(calls, /config get modelRoles/);
   assert.match(fs.readFileSync(miseLog, "utf8"), /exec bun@1\.3\.14 -- omp --version/);
@@ -279,6 +300,9 @@ fi
   assert.equal(fallbackInstalled.unmanaged.keep, true);
   assert.equal(fallbackInstalled.modelRoles.default, "openai/gpt-5.6-terra:xhigh");
   assert.equal(fallbackInstalled.hideThinkingBlock, true);
+  const fallbackGlobalInstructionPath = path.join(fallbackRoot, "AGENTS.md");
+  assert.equal(fs.lstatSync(fallbackGlobalInstructionPath).isSymbolicLink(), true);
+  assert.equal(fs.readlinkSync(fallbackGlobalInstructionPath), globalInstructionSource);
 
   const rollbackAgentContents = new Map();
   for (const name of managedAgentNames) {
@@ -286,6 +310,9 @@ fi
     rollbackAgentContents.set(name, content);
     writeFile(path.join(agentsDir, `${name}.md`), content, 0o640);
   }
+  const rollbackGlobalInstructionContent = "pre-failure global instruction\n";
+  fs.unlinkSync(globalInstructionPath);
+  writeFile(globalInstructionPath, rollbackGlobalInstructionContent, 0o640);
   const rollbackConfig = "unmanaged:\n  preserved: before-failure\n";
   writeFile(configPath, rollbackConfig);
   const failedUpdate = Bun.spawnSync(["bash", path.join(repoRoot, "setup-omp.sh")], {
@@ -313,6 +340,9 @@ fi
     assert.equal(fs.lstatSync(restoredPath).mode & 0o777, 0o640);
   }
   assert.equal(fs.readFileSync(unmanagedAgentPath, "utf8"), unmanagedAgentContent);
+  assert.equal(fs.lstatSync(globalInstructionPath).isSymbolicLink(), false);
+  assert.equal(fs.readFileSync(globalInstructionPath, "utf8"), rollbackGlobalInstructionContent);
+  assert.equal(fs.lstatSync(globalInstructionPath).mode & 0o777, 0o640);
 
   const missingConfig = path.join(testRoot, "missing", "config.yml");
   const failedCreate = Bun.spawnSync(["bash", path.join(repoRoot, "setup-omp.sh")], {

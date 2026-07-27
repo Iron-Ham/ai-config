@@ -12,7 +12,9 @@ cd ~/Developer/claude-config
 
 `setup-omp.sh` requires `mise`. It installs and verifies OMP 17.1.2 with Bun 1.3.14, discovers the profile path using `omp config path`, and merges the repository profile into the global configuration. Set `OMP_AGENT_DIR`, `PI_CODING_AGENT_DIR`, or `OMP_CONFIG_PATH` to select an explicit location. The installer creates private timestamped backups, writes atomically, validates the resulting roles and managed agents, and restores the previous configuration and managed agent files if validation fails.
 
-The installer also copies the seven repository-managed agent definitions from `omp/agents/` into `$OMP_AGENT_DIR/agents`: `accessibility_auditor`, `code_reviewer`, `database_optimizer`, `evidence_analyst`, `evidence_reader`, `security_engineer`, and `software_architect`. It replaces only those known files, rejects symlinked managed paths, and leaves unrelated user agent definitions untouched.
+The installer also symlinks the repository's `AGENTS.md` into the selected OMP global instruction location, `$OMP_AGENT_DIR/AGENTS.md`. It replaces a regular file only after backing it up, preserves an existing link to that repository source, and rejects a link to any other destination.
+
+The installer copies the seven repository-managed agent definitions from `omp/agents/` into `$OMP_AGENT_DIR/agents`: `accessibility_auditor`, `code_reviewer`, `database_optimizer`, `evidence_analyst`, `evidence_reader`, `security_engineer`, and `software_architect`. It replaces only those known files, rejects symlinked managed paths, and leaves unrelated user agent definitions untouched.
 
 Optional macOS dependencies used by OMP's repository tools:
 
@@ -71,6 +73,8 @@ omp() {
 `omp` invokes the existing `pi()` function with a function-local `OMP_LOCAL_PI=true`, so `pi` uses `notion local pi` while retaining the original working directory and every argument boundary.
 
 ### Delegating through Herdr
+
+**OMP only:** Every delegated session in this configuration MUST be an OMP session started with `herdr agent start --kind omp`. NEVER start Codex or invoke `codex` as a fallback. If Herdr or OMP is unavailable, stop and report the blocked dependency.
 
 For a Herdr-managed OMP subagent, create a sibling pane with the harness directory, then start and prompt the recognized agent:
 
