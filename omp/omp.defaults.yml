@@ -1,5 +1,5 @@
 # Global OMP defaults managed by claude-config.
-# Model role and subagent override values use OMP's provider/model:thinking syntax.
+# Model role values use OMP's provider/model:thinking syntax.
 modelRoleStorage: global
 modelRoles:
   default: openai/gpt-5.6-terra:xhigh
@@ -7,14 +7,12 @@ modelRoles:
   smol: openai/gpt-5.6-luna:high
   slow: openai/gpt-5.6-sol:high
   tiny: openai/gpt-5.6-luna:medium
+  task: openai/gpt-5.6-luna:max
   commit: baseten/moonshotai/Kimi-K2.7-Code
   advisor: openai/gpt-5.6-sol:high
 hideThinkingBlock: true
 advisor:
   enabled: true
-task:
-  agentModelOverrides:
-    task: openai/gpt-5.6-luna:max
 astGrep:
   enabled: true
 tools:
