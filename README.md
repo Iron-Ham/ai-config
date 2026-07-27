@@ -16,7 +16,7 @@ cd ~/Developer/claude-config
 ./setup-omp.sh
 ```
 
-`setup-omp.sh` requires `mise`. It installs and verifies OMP 17.1.2 with Bun 1.3.14, discovers the profile path using `omp config path`, and merges the repository profile into the global configuration. Set `OMP_AGENT_DIR`, `PI_CODING_AGENT_DIR`, or `OMP_CONFIG_PATH` to select an explicit location. The installer creates private timestamped backups, writes atomically, validates the resulting roles and managed agents, and restores the previous configuration and managed agent files if validation fails.
+`setup-omp.sh` requires `mise`. It installs OMP 17.1.4 when the installed runtime is older or invalid, and retains newer OMP versions. It discovers the profile path using `omp config path`, then merges the repository profile into the global configuration. Set `OMP_AGENT_DIR`, `PI_CODING_AGENT_DIR`, or `OMP_CONFIG_PATH` to select an explicit location. The installer creates private timestamped backups, writes atomically, validates the resulting roles and managed agents, and restores the previous configuration and managed agent files if validation fails.
 
 The installer also symlinks the repository's `AGENTS.md` into the selected OMP global instruction location, `$OMP_AGENT_DIR/AGENTS.md`. It replaces a regular file only after backing it up, preserves an existing link to that repository source, and rejects a link to any other destination.
 
