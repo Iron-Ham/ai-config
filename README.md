@@ -30,7 +30,7 @@ brew install ripgrep ast-grep
 
 ## Managed profile
 
-`omp/omp.defaults.yml` is the source of truth for the managed global profile. It sets global model roles (`default`, `plan`, `smol`, `slow`, `tiny`, `commit`, and `advisor`), pins the generic `task` subagent to Luna Max, enables the advisor and AST-grep integration, hides thinking blocks, and enables OMP's `xdev` tools with built-in documentation. The seven managed read-only agent definitions are sourced from `omp/agents/` and installed under the selected OMP agent directory. They contain no credentials; the merge keeps unrelated user configuration, custom task settings, and unmanaged agent definitions intact.
+`omp/omp.defaults.yml` is the source of truth for the managed global profile. It sets global model roles (`default`, `plan`, `smol`, `slow`, `tiny`, `commit`, and `advisor`), pins the generic `task` subagent to Terra High, enables the advisor and AST-grep integration, hides thinking blocks, and enables OMP's `xdev` tools with built-in documentation. The seven managed read-only agent definitions are sourced from `omp/agents/` and installed under the selected OMP agent directory. They contain no credentials; the merge keeps unrelated user configuration, custom task settings, and unmanaged agent definitions intact.
 
 Install these dispatchers in `~/.zshrc`, then start a new shell with `exec zsh`. Use `omp` rather than `pi`, `notion local pi`, or the `omp` binary directly: `omp` forces the local Notion runtime while applying this repository's managed profile after Notion's defaults. Without that final profile overlay, Notion runs the generic `task` subagent on `@smol`.
 
