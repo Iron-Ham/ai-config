@@ -16,6 +16,7 @@ MANAGED_AGENT_NAMES=(
   software_architect
 )
 MANAGED_AGENT_SOURCE_DIR="$REPO_DIR/omp/agents"
+GLOBAL_INSTRUCTION_SOURCE="$REPO_DIR/AGENTS.md"
 managed_agent_backup_paths=()
 managed_agent_original_exists=()
 managed_agent_dest_paths=()
@@ -39,7 +40,14 @@ validate_managed_agent_sources() {
   done
 }
 
+validate_global_instruction_source() {
+  if [ -L "$GLOBAL_INSTRUCTION_SOURCE" ] || [ ! -f "$GLOBAL_INSTRUCTION_SOURCE" ]; then
+    die "global OMP instruction source is missing or symlinked: $GLOBAL_INSTRUCTION_SOURCE"
+  fi
+}
+
 validate_managed_agent_sources
+validate_global_instruction_source
 MISE_BIN="${OMP_MISE_BIN:-$(type -P mise || true)}"
 omp_agent_dir_explicit=false
 if [ -n "${OMP_AGENT_DIR+x}" ] || [ -n "${PI_CODING_AGENT_DIR+x}" ]; then
@@ -50,6 +58,11 @@ CONFIG_PATH="${OMP_CONFIG_PATH:-}"
 backup_path=""
 original_exists=false
 transaction_failed=true
+global_instruction_backup_path=""
+global_instruction_original_exists=false
+global_instruction_dest_path=""
+global_instruction_temp_path=""
+global_instruction_installed=false
 
 if [ ! -x "$MISE_BIN" ]; then
   echo "ERROR  mise is required for OMP setup" >&2
@@ -162,6 +175,11 @@ if [ ! -d "$agents_dir" ]; then
   mkdir -m 700 "$agents_dir"
 fi
 
+global_instruction_dest_path="$OMP_AGENT_DIR/AGENTS.md"
+if [ "$GLOBAL_INSTRUCTION_SOURCE" = "$global_instruction_dest_path" ]; then
+  die "global OMP instruction destination overlaps its repository source: $global_instruction_dest_path"
+fi
+
 if [ -e "$CONFIG_PATH" ]; then
   original_exists=true
   backup_path="$backup_dir/$(basename "$CONFIG_PATH").bak.$(date +%Y%m%d%H%M%S)"
@@ -178,6 +196,16 @@ next_agent_backup_path() {
   local suffix=1
   while [ -e "$backup" ] || [ -L "$backup" ]; do
     backup="$backup_dir/agents-$name.md.bak.$(date +%Y%m%d%H%M%S).$suffix"
+    suffix=$((suffix + 1))
+  done
+  printf '%s\n' "$backup"
+}
+
+next_global_instruction_backup_path() {
+  local backup="$backup_dir/AGENTS.md.bak.$(date +%Y%m%d%H%M%S)"
+  local suffix=1
+  while [ -e "$backup" ] || [ -L "$backup" ]; do
+    backup="$backup_dir/AGENTS.md.bak.$(date +%Y%m%d%H%M%S).$suffix"
     suffix=$((suffix + 1))
   done
   printf '%s\n' "$backup"
@@ -242,6 +270,51 @@ validate_installed_agents() {
   done
 }
 
+prepare_global_instructions() {
+  if [ -L "$global_instruction_dest_path" ]; then
+    if [ "$(readlink "$global_instruction_dest_path")" = "$GLOBAL_INSTRUCTION_SOURCE" ]; then
+      return
+    fi
+    die "refusing to replace symlinked global OMP instructions: $global_instruction_dest_path"
+  fi
+  if [ -e "$global_instruction_dest_path" ] && [ ! -f "$global_instruction_dest_path" ]; then
+    die "global OMP instruction destination is not a regular file: $global_instruction_dest_path"
+  fi
+  if [ -e "$global_instruction_dest_path" ]; then
+    global_instruction_backup_path="$(next_global_instruction_backup_path)"
+    cp -p "$global_instruction_dest_path" "$global_instruction_backup_path"
+    global_instruction_original_exists=true
+  fi
+}
+
+install_global_instructions() {
+  local temporary="$OMP_AGENT_DIR/.AGENTS.md.tmp.$$"
+  if [ -L "$global_instruction_dest_path" ]; then
+    return
+  fi
+  if [ -e "$temporary" ] || [ -L "$temporary" ]; then
+    die "temporary global OMP instruction path already exists: $temporary"
+  fi
+  global_instruction_temp_path="$temporary"
+  ln -s "$GLOBAL_INSTRUCTION_SOURCE" "$temporary"
+  mv "$temporary" "$global_instruction_dest_path"
+  global_instruction_temp_path=""
+  global_instruction_installed=true
+}
+
+validate_global_instructions() {
+  if [ ! -L "$global_instruction_dest_path" ] ||
+    [ "$(readlink "$global_instruction_dest_path")" != "$GLOBAL_INSTRUCTION_SOURCE" ]; then
+    die "global OMP instructions do not link to the repository source: $global_instruction_dest_path"
+  fi
+}
+
+cleanup_global_instruction_temporary_file() {
+  if [ -n "$global_instruction_temp_path" ]; then
+    rm -f "$global_instruction_temp_path"
+  fi
+}
+
 cleanup_agent_temporary_files() {
   local temporary
   for temporary in "${managed_agent_temp_paths[@]}"; do
@@ -264,6 +337,17 @@ restore_managed_agents() {
   done
 }
 
+restore_global_instructions() {
+  cleanup_global_instruction_temporary_file
+  if [ "$global_instruction_installed" = false ]; then
+    return
+  fi
+  rm -f "$global_instruction_dest_path"
+  if [ "$global_instruction_original_exists" = true ]; then
+    cp -p "$global_instruction_backup_path" "$global_instruction_dest_path"
+  fi
+}
+
 restore_on_failure() {
   local status="$?"
   local rollback_status=0
@@ -271,6 +355,7 @@ restore_on_failure() {
   set +e
   if [ "$transaction_failed" = true ]; then
     restore_managed_agents || rollback_status=1
+    restore_global_instructions || rollback_status=1
     if [ "$original_exists" = true ]; then
       cp -p "$backup_path" "$CONFIG_PATH" || rollback_status=1
       chmod 600 "$CONFIG_PATH" || rollback_status=1
@@ -284,6 +369,7 @@ restore_on_failure() {
     fi
   else
     cleanup_agent_temporary_files
+    cleanup_global_instruction_temporary_file
   fi
   if [ "$rollback_status" -ne 0 ]; then
     status=1
@@ -293,16 +379,19 @@ restore_on_failure() {
 trap restore_on_failure EXIT
 
 prepare_managed_agents
+prepare_global_instructions
 install_managed_agents
+install_global_instructions
 
 run_bun "$REPO_DIR/scripts/merge-omp-config.mjs" \
   "$REPO_DIR/omp/omp.defaults.yml" \
   "$CONFIG_PATH"
 
 validate_installed_agents
+validate_global_instructions
 PI_CODING_AGENT_DIR="$config_dir" run_omp config get modelRoles >/dev/null
 
 transaction_failed=false
 echo "OK     OMP profile installed at $CONFIG_PATH"
-echo "       Managed OMP agents were installed; unrelated agents and settings were preserved."
+echo "       Managed OMP agents were installed and global instructions linked; unrelated settings were preserved."
 echo "       No credentials were read or written."
