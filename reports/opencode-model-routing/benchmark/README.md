@@ -1,14 +1,15 @@
-# OpenCode model-routing evidence
+# Production coding model-evaluation evidence
 
-This directory contains only privacy-safe aggregates used by the OpenCode routing report.
-These retained aggregates predate the OMP port; do not pool them with OMP runs without an explicit versioned comparison.
+This directory contains only privacy-safe aggregates used by the production coding model-evaluation report.
+Historical OpenCode aggregates and current OMP aggregates remain versioned separately; do not pool protocols without an explicit comparison.
 
 ## Published evidence
 
 - `production-confirmation.json` compares controller completion, boundary compliance, quality, latency, and cost on two production-shaped source-analysis workloads.
 - `planning-evaluation.json` records the repeated production-shaped planning comparison.
 - `production-coding-cohorts.json` records privacy-safe backend, frontend, mixed, tooling, IaC, final ten-route iOS, and Android implementation outcomes, plus a seven-workload default-candidate aggregate. Validation and compliance remain separate from blind quality.
-- `expanded-production-reference-calibration.json` records the privacy-safe 10/10 effective reference-calibration gate for the expanded workload definitions. Candidate trials exist for only three of those ten definitions.
+- `expanded-production-reference-calibration.json` records the privacy-safe 10/10 effective reference-calibration gate for the expanded workload definitions. Candidate trials now exist for five of those ten definitions.
+- `omp-production-candidate-cohort-2026-07-27.json` records the current privacy-safe OMP production cohort, including anonymous judge panels, validation and compliance, cost, model-session time, role-scoped retention decisions, and the same-range rule.
 - `small-model-utility.json` records the repeated session-title and project-copy-name utility comparison.
 - `exact-file-reader.json` records preliminary isolated exact-file reader calibration.
 - `reader-startup-crossover.json` records the preliminary full-config reader startup crossover.
@@ -27,10 +28,10 @@ Raw runs live outside the repository in private directories. The runner:
 - requires a clean frozen worktree;
 - denies edits, shell, network, and advisor access to planning and source-analysis controllers;
 - validates that tool paths stay inside the worktree;
-- removes the controller step ceiling and gives production-shaped candidate work a configurable 3,600-second wall-time limit after setup;
+- removes controller step and model wall-clock ceilings for production-shaped candidate work; a resource watchdog records progress and intervenes only for terminal provider failures, unsafe machine pressure, or a genuinely stalled process rather than elapsed time alone;
 - records stage completion and incomplete-cost lower bounds;
 - pins trusted provider/model metadata and rejects route identity mismatches while replacing permissions, agents, MCP access, and instructions with the locked benchmark boundary;
-- recomputes known OpenAI, Fireworks, and Baseten costs from observed usage;
+- recomputes known OpenAI, Anthropic, Fireworks, and Baseten costs from observed usage;
 - records launcher startup, time to first observed action, time to first text, model-session duration, and per-step decision latency without mislabeling those event-derived metrics as vendor TTFT;
 - binds configuration, model catalogs, repository state, runner source, seed, execution order, session, and transcript hashes into artifact fingerprints;
 - revalidates reused raw event logs and text before reuse; and
@@ -38,7 +39,7 @@ Raw runs live outside the repository in private directories. The runner:
 
 `scripts/benchmark-omp-model-pairs.mjs` runs the production planning and source-analysis protocols and retains support for reproducing the archived reviewer evidence. `scripts/summarize-blind-grades.mjs` joins independent blind grades to private answer keys without publishing those keys.
 
-The open-weight provider study treats `(model, provider, serving path, reasoning setting)` as the route. Fireworks Standard, Fireworks Fast, and Baseten must use exact pinned IDs and a contemporaneous Terra reference. Implementation screens use the three production-shaped Swift fixtures and hidden tests; only completed, policy-compliant routes advance to three balanced repeats. Planning and bounded-reader roles require separate repeated protocols. Small-model utility results apply only to the exact output contract tested. Luna low for project-copy names and Kimi K2.7 Code through Baseten for session titles are measured recommendations, not installed defaults.
+The open-weight provider study treats `(model, provider, serving path, reasoning setting)` as the route. Fireworks Standard, Fireworks Fast, and Baseten must use exact pinned IDs and a contemporaneous Terra reference. Candidate routes receive three representative production-shaped trials before a role-scoped promotion decision. Same-range quality is a retention condition: a challenger cannot be cut from a role when its mean is within five points of the champion or its per-trial judge-score distribution overlaps the champion's, provided deterministic and source-reconciled evidence supports the same handoff band. Cost and latency rank retained routes; they do not eliminate them. Planning and bounded-reader roles require separate repeated protocols. Small-model utility results apply only to the exact output contract tested. Luna low for project-copy names and Kimi K2.7 Code through Baseten for session titles are measured recommendations, not installed defaults.
 
 ## Archived historical evidence
 
@@ -47,6 +48,6 @@ The open-weight provider study treats `(model, provider, serving path, reasoning
 
 Advisor evaluation is closed. These files remain for audit and reproducibility; neither supports automatic advisor routing or an active follow-up study.
 
-No authenticated Fireworks outcome is published in this snapshot because the evaluation environment did not expose a Fireworks credential. The installed provider catalog and commands were resolved successfully, but availability is not reported as quality or latency evidence. Fireworks Fast's vendor throughput claims remain contextual until end-to-end OpenCode measurements justify its 1.5× GLM or 2× Kimi list-price premium.
+No authenticated Fireworks outcome is published in this snapshot because the evaluation environment did not expose a Fireworks credential. The installed provider catalog and commands were resolved successfully, but availability is not reported as quality or latency evidence. Fireworks Fast's vendor throughput claims remain contextual until end-to-end OMP measurements justify its 1.5× GLM or 2× Kimi list-price premium.
 
 These evaluations inform cost-aware defaults for high-stakes production work, with iOS weighted heavily because it is the primary workload. They do not establish a universal model ranking, and they do not replace edit, build, simulator, CI, rollout, or production verification.

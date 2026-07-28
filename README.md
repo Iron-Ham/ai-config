@@ -129,6 +129,14 @@ They share `scripts/omp-benchmark-runtime.mjs` and
 and may incur provider cost. Keep raw benchmark results outside this
 repository (for example, under `/tmp`).
 
+Model and catalog calls use `notion local pi`. The runners launch the managed
+wrapper outside the frozen benchmark checkout, preserve its normal managed-auth
+locations, and isolate each OMP agent state directory and explicit benchmark
+configuration. This prevents a historical checkout from triggering dependency
+installation while retaining the managed provider catalog. OMP v17 JSON events
+are normalized before timing and cost aggregation; provider-reported output
+already includes reasoning tokens and must not be billed twice.
+
 Run all deterministic profile and benchmark regression checks locally:
 
 ```bash
