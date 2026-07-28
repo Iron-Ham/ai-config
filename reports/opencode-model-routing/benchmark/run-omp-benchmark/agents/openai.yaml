@@ -1,0 +1,4 @@
+interface:
+  display_name: "Run OMP benchmark"
+  short_description: "Run production-shaped OMP model evaluations"
+  default_prompt: "Use $run-omp-benchmark to launch and complete a production-shaped model benchmark."
