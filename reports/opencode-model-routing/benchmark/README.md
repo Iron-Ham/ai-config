@@ -3,6 +3,10 @@
 This directory contains only privacy-safe aggregates used by the production coding model-evaluation report.
 Historical OpenCode aggregates and current OMP aggregates remain versioned separately; do not pool protocols without an explicit comparison.
 
+## Operator workflow
+
+- `run-omp-benchmark/SKILL.md` is the no-context workflow for designing, running, recovering, judging, scoring, and publishing a production-shaped OMP benchmark. Its references define the strict treatment, artifact contract, resource gates, and public/private publishing boundary.
+
 ## Published evidence
 
 - `omp-strict-k3-opus-confirmation-2026-07-28.json` records the strict Advisor-disabled K3/Opus confirmation, provider-normalized timing, censored-route treatment, and matched value metrics.
