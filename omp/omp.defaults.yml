@@ -12,7 +12,7 @@ modelRoles:
   advisor: openai/gpt-5.6-sol:high
 hideThinkingBlock: true
 advisor:
-  enabled: true
+  enabled: false
 astGrep:
   enabled: true
 tools:
