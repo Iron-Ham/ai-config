@@ -158,8 +158,28 @@
         <div class="metric"><b>1.349×</b><span>Sol cost per valid result relative to Terra, above the locked 1.25× policy ceiling.</span></div>
         <div class="metric"><b>0</b><span>New candidate routes that established broad cross-domain default superiority.</span></div>
       </div>
+      <div class="rule" style="margin-top:16px"><strong>Treatment boundary:</strong> the broad July OMP comparison below ran with passive Advisor enabled and is exploratory treated-system evidence. It supports follow-up allocation, not pure-model ranking. Advisor-disabled K3 and Opus confirmation is reported separately in the full report.</div>
       <div class="card" style="margin-top:16px">
-        <h3 style="margin-top:0">Realtime quality · one production-shaped workload</h3>
+        <h3 style="margin-top:0">Strict advisor-disabled K3 versus Opus · completed matched lanes</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Workload</th><th>K3 quality / weighted</th><th>Opus quality / weighted</th><th>Decision</th></tr></thead>
+            <tbody>
+              <tr><td>Modern client</td><td>82.7 / <strong>68.7</strong></td><td><strong>86.0</strong> / 64.2</td><td>K3 value win</td></tr>
+              <tr><td>Native editor</td><td>71.7 / 53.6</td><td>71.7 / <strong>61.3</strong></td><td>Opus speed win</td></tr>
+              <tr><td>Android maintenance</td><td>Provider-censored</td><td><strong>72.7 / 63.0</strong></td><td>Excluded from K3 quality</td></tr>
+              <tr><td>Collection query</td><td>78.7 / 60.0</td><td><strong>81.7 / 67.9</strong></td><td>Opus</td></tr>
+              <tr><td>Desktop native</td><td>54.0 / 41.7</td><td><strong>86.0 / 59.3</strong></td><td>Opus</td></tr>
+              <tr><td>Native offline/data</td><td>1.0 / 40.0 · Redrive</td><td><strong>66.0 / 20.3</strong></td><td>Opus; arithmetic gated</td></tr>
+              <tr><td>Public API</td><td>0.3 / 40.0 · Redrive</td><td><strong>58.3 / 25.9</strong></td><td>Opus; arithmetic gated</td></tr>
+              <tr><td>Mixed monetization</td><td><strong>62.0</strong> / 45.7</td><td>57.7 / <strong>45.9</strong></td><td>Near-tie blended; K3 cost win</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="color:var(--muted);margin-bottom:0">Across five mutually carryable lanes, K3 led pure Quality:Value 5/5 while Opus led the 429-normalized blended metric 4/5 (mean 53.9 versus 59.7). Stream-stall removal is shown only as provider-incident sensitivity. Provider-censored attempts are excluded from K3 model-quality and speed aggregates. Zero-patch rows show why a failed, cheap route cannot win promotion.</p>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h3 style="margin-top:0">Exploratory advisor-on Realtime quality · one production-shaped workload</h3>
         <div class="bars" aria-label="Realtime mean judge scores">
           <div class="bar"><span>Kimi K3</span><div class="track"><div class="fill" style="--score:88.7"></div></div><b>88.7</b></div>
           <div class="bar"><span>Opus 5</span><div class="track"><div class="fill" style="--score:87.7"></div></div><b>87.7</b></div>
@@ -192,10 +212,10 @@
             <tr><td><strong>Sol high</strong></td><td><span class="pill keep">Premium</span></td><td>Quality control</td><td>Higher spend per valid result.</td></tr>
             <tr><td><strong>Luna high</strong></td><td><span class="pill scope">Scoped</span></td><td>Realtime, iOS editor</td><td>Below the Sol range on iOS offline.</td></tr>
             <tr><td><strong>Luna max</strong></td><td><span class="pill scope">Scoped</span></td><td>Realtime, iOS editor</td><td>Quality and efficiency did not transfer to collection-query execution.</td></tr>
-            <tr><td><strong>Kimi K3</strong></td><td><span class="pill scope">Retain</span></td><td>Realtime, iOS editor, iOS offline</td><td>1,012–1,913 second sessions; not cheaper than Terra/Luna end to end.</td></tr>
-            <tr><td><strong>GLM 5.2 max</strong></td><td><span class="pill scope">iOS only</span></td><td>iOS editor and offline</td><td>High latency and a true Realtime candidate defect.</td></tr>
-            <tr><td><strong>Opus 5 high</strong></td><td><span class="pill scope">Explicit</span></td><td>Realtime and iOS</td><td>Very high cost plus a Desktop redrive.</td></tr>
-            <tr><td><strong>Inkling</strong></td><td><span class="pill stop">Stop</span></td><td>None of three measured roles</td><td>After three trials: 10/6/7 Realtime, 0/0/0 editor, and 42/30/32 offline. No distribution overlapped its eligible role champion.</td></tr>
+            <tr><td><strong>Kimi K3</strong></td><td><span class="pill scope">Explicit</span></td><td>Modern client, Realtime, editor, collection query</td><td>High ceiling and strong cost signal; uncensored no-delivery results on native offline/data and Public API. Android was provider-censored.</td></tr>
+            <tr><td><strong>GLM 5.2 max</strong></td><td><span class="pill stop">Experimental</span></td><td>No shared route</td><td>Strict editor confirmation was lower-quality, more expensive, and slower than Sol.</td></tr>
+            <tr><td><strong>Opus 5 high</strong></td><td><span class="pill scope">Explicit</span></td><td>All finalized strict implementation lanes</td><td>Reliable premium challenger, but model spend remains high and it has not displaced Sol on value.</td></tr>
+            <tr><td><strong>Inkling</strong></td><td><span class="pill stop">Stop</span></td><td>None of three exploratory roles</td><td>Advisor-on screen: 10/6/7 Realtime, 0/0/0 editor, and 42/30/32 offline. This stops expansion, not a clean model-alone ranking.</td></tr>
           </tbody>
         </table>
       </div>
@@ -223,7 +243,7 @@
       <p>Public artifacts contain aggregate outcomes only. Prompts, patches, repository identifiers, and source adjudications remain private.</p>
       <div class="links">
         <a href="report.md">Full public report</a>
-        <a href="benchmark/omp-production-candidate-cohort-2026-07-27.json">Expanded OMP cohort</a>
+        <a href="benchmark/omp-production-candidate-cohort-2026-07-27.json">Exploratory advisor-on OMP cohort</a>
         <a href="benchmark/matched-switch-gate-final.json">Matched switch gate</a>
         <a href="benchmark/README.md">Evidence index</a>
       </div>

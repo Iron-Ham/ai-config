@@ -5,10 +5,12 @@ Historical OpenCode aggregates and current OMP aggregates remain versioned separ
 
 ## Published evidence
 
+- `omp-strict-k3-opus-confirmation-2026-07-28.json` records the strict Advisor-disabled K3/Opus confirmation, provider-normalized timing, censored-route treatment, and matched value metrics.
+- `omp-strict-glm-sol-confirmation-2026-07-28.json` records the strict Advisor-disabled native-editor GLM/Sol comparison and source-reconciled route decision.
 - `production-confirmation.json` compares controller completion, boundary compliance, quality, latency, and cost on two production-shaped source-analysis workloads.
 - `planning-evaluation.json` records the repeated production-shaped planning comparison.
 - `production-coding-cohorts.json` records privacy-safe backend, frontend, mixed, tooling, IaC, final ten-route iOS, and Android implementation outcomes, plus a seven-workload default-candidate aggregate. Validation and compliance remain separate from blind quality.
-- `expanded-production-reference-calibration.json` records the privacy-safe 10/10 effective reference-calibration gate for the expanded workload definitions. Candidate trials now exist for five of those ten definitions.
+- `expanded-production-reference-calibration.json` records the privacy-safe 10/10 effective reference-calibration gate for the expanded workload definitions. Every definition now has at least one strict candidate artifact or provider-censored attempt.
 - `omp-production-candidate-cohort-2026-07-27.json` records the current privacy-safe OMP production cohort, including anonymous judge panels, validation and compliance, cost, model-session time, role-scoped retention decisions, and the same-range rule.
 - `small-model-utility.json` records the repeated session-title and project-copy-name utility comparison.
 - `exact-file-reader.json` records preliminary isolated exact-file reader calibration.

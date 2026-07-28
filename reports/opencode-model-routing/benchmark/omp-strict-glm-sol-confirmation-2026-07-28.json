@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "generated_date": "2026-07-28",
+  "evidence_class": "strict_advisor_disabled_production_shaped_confirmation",
+  "workload": "native_editor",
+  "directions": {
+    "quality": "higher_is_better",
+    "quality_value": "higher_is_better",
+    "weighted_quality_cost_speed": "higher_is_better",
+    "rank": "1_is_best"
+  },
+  "timing_policy": {
+    "raw_model_session_seconds": "immutable_audit_measurement",
+    "rate_limit_normalized_seconds": "raw_minus_recorded_429_response_and_retry_backoff_time",
+    "published_speed_basis": "rate_limit_normalized_seconds"
+  },
+  "routes": [
+    {
+      "route": "sol-high",
+      "quality_scores": [63, 62, 66],
+      "quality_mean": 63.6667,
+      "handoff": "carry_with_repair",
+      "cost_usd": 1.3943325,
+      "rate_limit_normalized_seconds": 223.639,
+      "quality_value": 25.807,
+      "weighted_quality_cost_speed": 55.4842,
+      "quality_value_rank": 1,
+      "weighted_rank": 1
+    },
+    {
+      "route": "glm-5.2-max-baseten",
+      "quality_scores": [58, 55, 42],
+      "quality_mean": 51.6667,
+      "handoff": "carry_with_repair",
+      "cost_usd": 1.9740966,
+      "raw_seconds": 568.9015,
+      "rate_limit_normalized_seconds": 568.902,
+      "http_429_count": 0,
+      "quality_value": 9.7416,
+      "weighted_quality_cost_speed": 31.8297,
+      "quality_value_rank": 2,
+      "weighted_rank": 2,
+      "source_reconciliation": "The artifact is compliant but not production-ready: malformed Swift documentation prevents compilation, and composing behavior can lose the incoming remote value."
+    }
+  ],
+  "comparison": {
+    "glm_quality_delta_vs_sol": -12,
+    "glm_cost_ratio_vs_sol": 1.4158,
+    "glm_time_ratio_vs_sol": 2.5438,
+    "decision": "GLM 5.2 max did not earn the Sol premium route."
+  }
+}
