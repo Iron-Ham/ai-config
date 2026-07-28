@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import fs from "node:fs";
+import os from "node:os";
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 import process from "node:process";
@@ -12,7 +13,11 @@ import {
   assertParallelModelAuthSafe,
   benchmarkConfigOverlay,
   benchmarkInstructionManifest,
-  isolatedOmpEnvironment,
+  buildOmpCatalogCommand,
+  buildOmpCommand,
+  extractOmpJsonDocument,
+  extractOmpVersion,
+  managedOmpEnvironment,
   loadOmpAuthContent,
   parseOmpEvents,
   recomputedRequestCost,
@@ -156,6 +161,15 @@ const combinations = {
   "deepseek-baseten-direct": {
     implementer: { model: "baseten/deepseek-ai/DeepSeek-V4-Pro" },
   },
+  "inkling-baseten-direct": {
+    implementer: { model: "baseten/thinkingmachines/inkling" },
+  },
+  "kimi-k3-baseten-direct": {
+    implementer: { model: "baseten/moonshotai/Kimi-K3" },
+  },
+  "opus-5-high-direct": {
+    implementer: { model: "anthropic/claude-opus-5", variant: "high" },
+  },
   "kimi-fireworks": {
     implementer: {
       model: "fireworks-ai/accounts/fireworks/models/kimi-k2p7-code",
@@ -170,20 +184,21 @@ const combinations = {
   },
 };
 
-let ompLauncher = "direct";
+let ompLauncher = "notion-local-pi";
 
 function ompCommand(args, configPath) {
   const model = args[args.indexOf("--model") + 1];
   const cwd = args[args.indexOf("--dir") + 1] ?? process.cwd();
   const variant = args[args.indexOf("--variant") + 1];
   const prompt = args.at(-1);
-  const command = [
-    "omp", "-p", "--mode", "json", "--cwd", cwd, "--model", model,
-    "--thinking", variant ?? "auto",
-  ];
-  if (configPath) command.push("--config", configPath);
-  command.push("--no-session", "--tools", "read,glob,grep", "--no-pty", prompt);
-  return command;
+  return buildOmpCommand({
+    cwd,
+    model,
+    prompt,
+    thinking: variant ?? "auto",
+    tools: "read,glob,grep",
+    configPath,
+  });
 }
 
 const ADVISOR_SYSTEM =
@@ -209,23 +224,6 @@ const MESSAGE_TRUNCATE_MAX = 4000;
 const TRANSCRIPT_CHAR_BUDGET = 60000;
 const LEGACY_CONTROLLER_STEPS = 100;
 const ADVISOR_STEPS = 4;
-const REQUEST_TIMEOUT_MS = benchmarkTimeout(
-  "OMP_BENCHMARK_REQUEST_TIMEOUT_MS",
-  60 * 60 * 1000,
-);
-const DIRECT_REQUEST_TIMEOUT_MS = benchmarkTimeout(
-  "OMP_BENCHMARK_DIRECT_REQUEST_TIMEOUT_MS",
-  REQUEST_TIMEOUT_MS,
-);
-const TERMINATION_GRACE_MS = 5000;
-
-function benchmarkTimeout(environmentVariable, fallback) {
-  const value = Number(process.env[environmentVariable] ?? fallback);
-  if (!Number.isFinite(value) || value <= 0) {
-    throw new Error(`${environmentVariable} must be a positive number of milliseconds`);
-  }
-  return value;
-}
 
 function ensurePrivateDirectory(directory) {
   const existing = fs.lstatSync(directory, { throwIfNoEntry: false });
@@ -540,9 +538,13 @@ let cachedOmpVersion;
 
 function ompVersion() {
   if (cachedOmpVersion !== undefined) return cachedOmpVersion;
-  const result = Bun.spawnSync(["omp", "--version"], { stdout: "pipe", stderr: "pipe" });
+  const result = Bun.spawnSync(["notion", "local", "pi", "--version"], {
+    cwd: os.tmpdir(),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
   if (result.exitCode !== 0) throw new Error(`Cannot determine OMP version: ${result.stderr.toString()}`);
-  cachedOmpVersion = result.stdout.toString().trim();
+  cachedOmpVersion = extractOmpVersion(result.stdout.toString());
   return cachedOmpVersion;
 }
 
@@ -609,12 +611,12 @@ function verboseModelCatalog(cwd, provider) {
   const key = `omp:${provider}`;
   if (modelCatalogHashCache.has(`${key}:source`)) return modelCatalogHashCache.get(`${key}:source`);
   const runtime = catalogRuntimePaths();
-  const catalog = commandText(["omp", "models", "--json"], runtime.cwd, isolatedOmpEnvironment({
+  const catalog = extractOmpJsonDocument(commandText(buildOmpCatalogCommand(), os.tmpdir(), managedOmpEnvironment({
     configContent: createBenchmarkConfig(cwd),
     configHome: runtime.configHome,
     dataHome: runtime.dataHome,
     cwd: runtime.cwd,
-  }));
+  })));
   modelCatalogHashCache.set(`${key}:source`, catalog);
   return catalog;
 }
@@ -878,7 +880,6 @@ async function runOmp({
   prompt,
   dataHome,
   authState,
-  requestTimeoutMs = REQUEST_TIMEOUT_MS,
 }) {
   const configHome = path.join(path.dirname(dataHome), "omp-config");
   ensurePrivateDirectory(configHome);
@@ -890,23 +891,16 @@ async function runOmp({
   const startedAtEpochMs = Date.now();
   const startedAt = performance.now();
   const child = Bun.spawn(ompCommand(args, configPath), {
-    cwd,
-    env: isolatedOmpEnvironment({
+    env: managedOmpEnvironment({
       configContent: createBenchmarkConfig(cwd),
       configHome,
       dataHome,
       cwd,
     }),
+    cwd: os.tmpdir(),
     stdout: "pipe",
     stderr: "pipe",
   });
-  let timedOut = false;
-  let forceKillTimeout;
-  const timeout = setTimeout(() => {
-    timedOut = true;
-    child.kill("SIGTERM");
-    forceKillTimeout = setTimeout(() => child.kill("SIGKILL"), TERMINATION_GRACE_MS);
-  }, requestTimeoutMs);
   let output;
   let errorOutput;
   let exitCode;
@@ -917,8 +911,6 @@ async function runOmp({
       child.exited,
     ]);
   } finally {
-    clearTimeout(timeout);
-    clearTimeout(forceKillTimeout);
     absorbAndScrubPersistedAuth(dataHome);
   }
   const wallTimeMs = performance.now() - startedAt;
@@ -934,7 +926,7 @@ async function runOmp({
     (event.type === "step_finish" && event.part?.reason === "stop") ||
     event.type === "turn_end" || event.type === "response",
   );
-  const status = policyViolation ? "policy_violation" : timedOut ? "timeout" : exitCode !== 0 ? "failed" : completed ? "completed" : "incomplete";
+  const status = policyViolation ? "policy_violation" : exitCode !== 0 ? "failed" : completed ? "completed" : "incomplete";
   const metrics = summarize(events, wallTimeMs, model, startedAtEpochMs);
   metrics.cost_completeness = status === "completed" ? "complete_for_observed_requests" : "completed_requests_lower_bound";
   return { status, exit_code: exitCode, session_id: sessionID, text: extractText(events), metrics, events, error: policyViolation ?? (exitCode === 0 ? undefined : (errorOutput || output.slice(-2000))) };
@@ -1461,9 +1453,6 @@ async function runDraft({
     prompt,
     dataHome,
     authState,
-    requestTimeoutMs: protocol === DIRECT_PROTOCOL
-      ? DIRECT_REQUEST_TIMEOUT_MS
-      : REQUEST_TIMEOUT_MS,
   });
   draft.fingerprint = fingerprint;
   draft.artifact_provenance = {
@@ -1854,7 +1843,7 @@ async function main() {
     usage();
     throw error;
   }
-  ompLauncher = "direct";
+  ompLauncher = "notion-local-pi";
   if (args.round) validateRoundName(args.round);
   if (args.summary_file) {
     for (const required of ["round", "output_dir", "rubric_file"]) {
@@ -2036,7 +2025,7 @@ async function main() {
   const metadata = {
     round: args.round,
     seed: String(args.seed),
-    omp_launcher: "direct",
+    omp_launcher: "notion-local-pi",
     workdir: cwd,
     omp_version: ompVersion(),
     runner_sha256: RUNNER_SHA256,
@@ -2047,15 +2036,13 @@ async function main() {
     concurrency: args.concurrency,
     controller_steps: null,
     controller_step_policy:
-      "Uncapped so production-shaped analysis and planning are bounded by the request timeout rather than an artificial step ceiling.",
+      "Uncapped for production-shaped analysis and planning.",
     advisor_steps: args.draft_only || selected.every(
       (name) => combinations[name].review_mode === "self_review",
     ) ? 0 : ADVISOR_STEPS,
     advisor_policy: args.draft_only ? "disabled" : "legacy_experiment_only",
-    request_timeout_seconds: args.draft_only
-      ? DIRECT_REQUEST_TIMEOUT_MS / 1000
-      : REQUEST_TIMEOUT_MS / 1000,
-    termination_grace_seconds: TERMINATION_GRACE_MS / 1000,
+    request_timeout_seconds: null,
+    model_timeout_policy: "uncapped",
     advisor_system_sha256: args.draft_only
       ? undefined
       : createHash("sha256").update(ADVISOR_SYSTEM).digest("hex"),

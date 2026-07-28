@@ -13,7 +13,11 @@ import {
   aggregateEventTiming,
   benchmarkConfigOverlay,
   benchmarkInstructionManifest,
-  isolatedOmpEnvironment,
+  buildOmpCatalogCommand,
+  buildOmpCommand,
+  extractOmpJsonDocument,
+  extractOmpVersion,
+  managedOmpEnvironment,
   loadOmpAuthContent,
   parseOmpEvents,
   resolveBenchmarkModelRoute,
@@ -57,6 +61,11 @@ const candidates = {
     variant: "high",
     effort: "high",
   },
+  "opus-5-high": {
+    model: "anthropic/claude-opus-5",
+    variant: "high",
+    effort: "high",
+  },
   "glm-baseten": {
     model: "baseten/zai-org/GLM-5.2",
     variant: "max",
@@ -76,6 +85,14 @@ const candidates = {
     model: "baseten/moonshotai/Kimi-K2.7-Code",
     effort: "default",
   },
+  "kimi-k3-baseten": {
+    model: "baseten/moonshotai/Kimi-K3",
+    effort: "default",
+  },
+  "inkling-baseten": {
+    model: "baseten/thinkingmachines/inkling",
+    effort: "default",
+  },
   "kimi-fireworks": {
     model: "fireworks-ai/accounts/fireworks/models/kimi-k2p7-code",
     effort: "default",
@@ -86,20 +103,8 @@ const candidates = {
   },
 };
 const DEFAULT_CANDIDATES = ["sonnet", "luna", "terra"];
-const IMPLEMENTER_TIMEOUT_MS = benchmarkTimeout(
-  "OMP_BENCHMARK_IMPLEMENTER_TIMEOUT_MS",
-  60 * 60 * 1000,
-);
 
-function benchmarkTimeout(environmentVariable, fallback) {
-  const value = Number(process.env[environmentVariable] ?? fallback);
-  if (!Number.isFinite(value) || value <= 0) {
-    throw new Error(`${environmentVariable} must be a positive number of milliseconds`);
-  }
-  return value;
-}
-
-let ompLauncher = "direct";
+let ompLauncher = "notion-local-pi";
 
 function ompCommand(args, configPath) {
   const model = args[args.indexOf("--model") + 1];
@@ -108,10 +113,14 @@ function ompCommand(args, configPath) {
   const prompt = args.at(-1);
   const agent = args[args.indexOf("--agent") + 1] ?? "";
   const tools = agent.includes("implementer") ? "read,glob,grep,edit" : "read,glob,grep";
-  const command = ["omp", "-p", "--mode", "json", "--cwd", cwd, "--model", model, "--thinking", variant ?? "auto"];
-  if (configPath) command.push("--config", configPath);
-  command.push("--no-session", "--tools", tools, "--no-pty", prompt);
-  return command;
+  return buildOmpCommand({
+    cwd,
+    model,
+    prompt,
+    thinking: variant ?? "auto",
+    tools,
+    configPath,
+  });
 }
 
 const ADVISOR_SYSTEM =
@@ -767,11 +776,13 @@ async function runWithTimeout(command, options, timeoutMs) {
   });
   let timedOut = false;
   let forceKill;
-  const timeout = setTimeout(() => {
-    timedOut = true;
-    child.kill("SIGTERM");
-    forceKill = setTimeout(() => child.kill("SIGKILL"), 5000);
-  }, timeoutMs);
+  const timeout = Number.isFinite(timeoutMs)
+    ? setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGTERM");
+      forceKill = setTimeout(() => child.kill("SIGKILL"), 5000);
+    }, timeoutMs)
+    : undefined;
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(child.stdout).text(),
     new Response(child.stderr).text(),
@@ -802,15 +813,15 @@ async function runOmpTurn({
   const execution = await runWithTimeout(
     ompCommand(args, configPath),
     {
-      cwd,
-      env: isolatedOmpEnvironment({
+      cwd: os.tmpdir(),
+      env: managedOmpEnvironment({
         configContent: benchmarkConfig(cwd),
         configHome,
         dataHome,
         cwd,
       }),
     },
-    IMPLEMENTER_TIMEOUT_MS,
+    undefined,
   );
   const events = parseEvents(execution.stdout);
   assertToolPathsStayInWorkspace(events, cwd);
@@ -1184,9 +1195,9 @@ function preflightModelRoute({ selection, fixtureDir, configHome, dataHome }) {
   ensurePrivateDirectory(catalogWorkspace);
   const provider = selection.model.split("/", 1)[0];
   const catalog = command(
-    ["omp", "models", "--json"],
-    catalogWorkspace,
-    isolatedOmpEnvironment({
+    buildOmpCatalogCommand(),
+    os.tmpdir(),
+    managedOmpEnvironment({
       configContent: benchmarkConfig(fixtureDir),
       configHome,
       dataHome,
@@ -1194,7 +1205,7 @@ function preflightModelRoute({ selection, fixtureDir, configHome, dataHome }) {
       cwd: catalogWorkspace,
     }),
   );
-  return resolveBenchmarkModelRoute(catalog, selection);
+  return resolveBenchmarkModelRoute(extractOmpJsonDocument(catalog), selection);
 }
 
 function prepareWorkspace(fixtureDir, workspace) {
@@ -1672,7 +1683,7 @@ async function runTrial({
 
 async function main() {
   const args = parseArguments(process.argv.slice(2));
-  ompLauncher = "direct";
+  ompLauncher = "notion-local-pi";
   if (!args.output_dir) throw new Error("Missing --output-dir");
   let outputDir = assertRawBenchmarkOutputOutsideRepository(args.output_dir);
   createPrivateOutputDirectory(outputDir);
@@ -1790,7 +1801,7 @@ async function main() {
     manifest_path: manifestPath,
     manifest_sha256: manifestHash,
     seed: args.seed,
-    omp_launcher: "direct",
+    omp_launcher: "notion-local-pi",
     repeat: args.repeat,
     sampling_class: singleBlock
       ? "exploratory_single_block"
@@ -1807,7 +1818,7 @@ async function main() {
     runner_sha256: createHash("sha256")
       .update(fs.readFileSync(new URL(import.meta.url)))
       .digest("hex"),
-    omp_version: command(["omp", "--version"], process.cwd()).trim(),
+    omp_version: extractOmpVersion(command(["notion", "local", "pi", "--version"], os.tmpdir())),
     swift_version: command(["swift", "--version"], process.cwd()).trim(),
     xcode_version: command(["xcodebuild", "-version"], process.cwd()).trim(),
     sdk_version: command(["xcrun", "--show-sdk-version"], process.cwd()).trim(),

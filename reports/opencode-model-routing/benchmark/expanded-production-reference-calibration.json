@@ -8,8 +8,8 @@
     "effective_passes": 10,
     "raw_failures": 1,
     "effective_failures": 0,
-    "candidate_workloads_completed": 3,
-    "candidate_workloads_pending": 7
+    "candidate_workloads_completed": 5,
+    "candidate_workloads_pending": 5
   },
   "workloads": [
     {"label":"native mobile data","status":"pass"},
@@ -23,5 +23,5 @@
     {"label":"mixed monetization","status":"pass"},
     {"label":"query execution","status":"pass"}
   ],
-  "next_gate": "complete matched candidate routes for the seven definition-only workloads and retain implementation, validation, compliance, blind quality, cost, and wall time separately"
+  "next_gate": "complete matched candidate routes for the five definition-only workloads and retain implementation, validation, compliance, blind quality, cost, and wall time separately"
 }

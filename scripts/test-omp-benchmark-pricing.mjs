@@ -59,6 +59,13 @@ assert.equal(
   ),
   1.3875,
 );
+assert.equal(
+  recomputedRequestCost(
+    finish({ input: 100, output: 20, reasoning: 5, cacheRead: 50 }),
+    "anthropic/claude-opus-5",
+  ),
+  0.00115,
+);
 
 assert.equal(
   recomputedRequestCost(finish({ cost: 0.75 }), "example/unknown"),
@@ -99,6 +106,20 @@ assert.equal(
     "baseten/moonshotai/Kimi-K2.7-Code",
   ),
   0.000203,
+);
+assert.equal(
+  recomputedRequestCost(
+    finish({ input: 100, output: 20, reasoning: 5, cacheRead: 50 }),
+    "baseten/moonshotai/Kimi-K3",
+  ),
+  0.00069,
+);
+assert.equal(
+  recomputedRequestCost(
+    finish({ input: 100, output: 20, reasoning: 5, cacheRead: 50 }),
+    "baseten/thinkingmachines/inkling",
+  ),
+  0.00020975,
 );
 assert.equal(
   recomputedRequestCost(

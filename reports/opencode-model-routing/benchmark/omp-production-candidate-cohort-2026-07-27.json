@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "protocol": "omp-production-candidate-cohort-v1",
+  "privacy": "aggregate_only",
+  "status": "complete",
+  "direction": {
+    "quality": "higher_is_better",
+    "quality_value": "higher_is_better",
+    "weighted_quality_cost_speed": "higher_is_better",
+    "rank": "1_is_best"
+  },
+  "retention_rule": {
+    "scope": "role_specific",
+    "same_range": "mean within five quality points of the role champion or overlapping per-trial judge-score distributions, corroborated by deterministic and source-reconciled evidence in the same handoff band",
+    "decision": "same-range challengers remain in contention; cost and latency rank them but cannot eliminate them",
+    "coarse_handoff_alone_is_sufficient": false
+  },
+  "scoring": {
+    "quality_value": "100 * (quality_mean / 100)^3 * cost_efficiency",
+    "weighted_quality_cost_speed": "60 * (quality_mean / 100)^3 + 25 * cost_efficiency + 15 * speed_efficiency",
+    "cost_efficiency": "cheapest eligible route cost / route cost",
+    "speed_efficiency": "fastest eligible route model-session time / route model-session time",
+    "eligibility": "invalid or noncompliant artifacts retain descriptive scores but cannot win"
+  },
+  "workloads": [
+    {
+      "label": "distributed-systems state transition",
+      "status": "complete",
+      "routes": [
+        {"route":"luna-max","scores":[85,83,87],"quality_mean":85,"cost_usd":2.337544,"model_session_seconds":804.081,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair","quality_value":59.0589,"quality_value_rank":1,"weighted_quality_cost_speed":72.3757,"weighted_rank":1},
+        {"route":"luna-high","scores":[78,73,86],"quality_mean":79,"cost_usd":2.247961,"model_session_seconds":647.748,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair","quality_value":49.3039,"quality_value_rank":2,"weighted_quality_cost_speed":68.8408,"weighted_rank":2},
+        {"route":"terra-xhigh","scores":[76,87,81],"quality_mean":81.3333,"cost_usd":3.267401,"model_session_seconds":615.726,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair","quality_value":37.0162,"quality_value_rank":3,"weighted_quality_cost_speed":64.4816,"weighted_rank":3},
+        {"route":"kimi-k3-baseten","scores":[87,92,87],"quality_mean":88.6667,"cost_usd":4.4549,"model_session_seconds":1760.323,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair","quality_value":35.1749,"quality_value_rank":4,"weighted_quality_cost_speed":59.6865,"weighted_rank":4},
+        {"route":"sol-high","scores":[84,81,92],"quality_mean":85.6667,"cost_usd":7.498417,"model_session_seconds":724.313,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair","quality_value":18.8476,"quality_value_rank":5,"weighted_quality_cost_speed":57.9674,"weighted_rank":5},
+        {"route":"opus-5-high","scores":[91,87,85],"quality_mean":87.6667,"cost_usd":16.187242,"model_session_seconds":1315.521,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair","quality_value":9.3566,"quality_value_rank":6,"weighted_quality_cost_speed":50.918,"weighted_rank":6},
+        {"route":"glm-5.2-max-baseten","scores":[72,68,79],"quality_mean":73,"cost_usd":11.731402,"model_session_seconds":2600.81,"validation":"fail","compliance":"compliant","handoff":"carry-with-repair","quality_value":7.4543,"quality_value_rank":7,"weighted_quality_cost_speed":31.6827,"weighted_rank":7,"eligibility_note":"candidate-native correctness failure"}
+      ]
+    },
+    {
+      "label": "native-mobile editor behavior",
+      "status": "complete",
+      "routes": [
+        {"route":"terra-xhigh","scores":[60,67,64],"quality_mean":63.6667,"cost_usd":1.05225,"model_session_seconds":242.843,"handoff":"carry-with-repair"},
+        {"route":"luna-high","scores":[63,76,73],"quality_mean":70.6667,"cost_usd":0.99311,"model_session_seconds":410.893,"handoff":"carry-with-repair"},
+        {"route":"luna-max","scores":[77,65,50],"quality_mean":64,"cost_usd":1.61168,"model_session_seconds":806.608,"handoff":"carry-with-repair"},
+        {"route":"sol-high","scores":[70,66,72],"quality_mean":69.3333,"cost_usd":5.4433,"model_session_seconds":736.967,"handoff":"carry-with-repair"},
+        {"route":"kimi-k3-baseten","scores":[76,70,79],"quality_mean":75,"cost_usd":2.53855,"model_session_seconds":1012.024,"handoff":"carry-with-repair"},
+        {"route":"glm-5.2-max-baseten","scores":[80,80,71],"quality_mean":77,"cost_usd":2.46063,"model_session_seconds":1026.743,"handoff":"carry-with-repair"},
+        {"route":"opus-5-high","scores":[78,78,68],"quality_mean":74.6667,"cost_usd":5.02773,"model_session_seconds":602.711,"handoff":"carry-with-repair"}
+      ]
+    },
+    {
+      "label": "native-mobile offline data",
+      "status": "complete",
+      "routes": [
+        {"route":"sol-high-repeat-1","scores":[83,88,64],"quality_mean":78.3333,"cost_usd":3.688683,"model_session_seconds":1045.794,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair"},
+        {"route":"sol-high-repeat-2","scores":[91,87,69],"quality_mean":82.3333,"cost_usd":4.608483,"model_session_seconds":920.772,"validation":"pass","compliance":"noncompliant","handoff":"carry-with-repair"},
+        {"route":"terra-xhigh-new","scores":[39,43,39],"quality_mean":40.3333,"cost_usd":3.049681,"model_session_seconds":690.327,"validation":"fail","compliance":"compliant","handoff":"redrive"},
+        {"route":"luna-high","scores":[56,63,53],"quality_mean":57.3333,"cost_usd":1.8931035,"model_session_seconds":727.329,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair"},
+        {"route":"glm-5.2-max-baseten","scores":[67,67,55],"quality_mean":63,"cost_usd":7.242295,"model_session_seconds":1311.907,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair"},
+        {"route":"kimi-k3-baseten","scores":[67,74,52],"quality_mean":64.3333,"cost_usd":5.213288,"model_session_seconds":1913.126,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair"},
+        {"route":"opus-5-high","scores":[63,78,54],"quality_mean":65,"cost_usd":14.329737,"model_session_seconds":1016.263,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair"}
+      ]
+    },
+    {
+      "label": "collection-query execution",
+      "status": "complete",
+      "routes": [
+        {"route":"terra-xhigh","scores":[79,88,75],"quality_mean":80.6667,"cost_usd":9.3454085,"model_session_seconds":915.7205,"validation":"pass-after-reconciliation","compliance":"compliant","handoff":"carry-with-repair","quality_value":50.786,"quality_value_rank":1,"weighted_quality_cost_speed":67.9002,"weighted_rank":1},
+        {"route":"sol-high","scores":[75,68,68],"quality_mean":70.3333,"cost_usd":9.041913,"model_session_seconds":745.8629,"validation":"pass-after-reconciliation","compliance":"compliant","handoff":"carry-with-repair","quality_value":34.7923,"quality_value_rank":2,"weighted_quality_cost_speed":60.8754,"weighted_rank":2,"retention_note":"judge range overlaps champion Terra at 75; same handoff band"},
+        {"route":"luna-max","scores":[68,72,65],"quality_mean":68.3333,"cost_usd":15.04677785,"model_session_seconds":1925.132,"validation":"pass-after-reconciliation","compliance":"compliant","handoff":"carry-with-repair","quality_value":19.1741,"quality_value_rank":3,"weighted_quality_cost_speed":39.9792,"weighted_rank":3,"role_decision":"screened out of this role only; score range does not overlap champion Terra and no cost or speed advantage"}
+      ]
+    }
+  ],
+  "role_decisions": [
+    {"route":"terra-xhigh","status":"continue","scope":"general-default-control"},
+    {"route":"sol-high","status":"continue","scope":"premium-control"},
+    {"route":"luna-high","status":"continue","scope":"distributed-systems-and-native-editor"},
+    {"route":"luna-max","status":"continue","scope":"distributed-systems-and-native-editor","exclusion":"collection-query execution"},
+    {"route":"kimi-k3-baseten","status":"continue","scope":"distributed-systems-and-native-mobile confirmation"},
+    {"route":"glm-5.2-max-baseten","status":"continue","scope":"native-mobile confirmation"},
+    {"route":"opus-5-high","status":"continue","scope":"role-scoped premium alternative"}
+  ]
+}

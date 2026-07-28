@@ -92,6 +92,8 @@ const TRUSTED_PROVIDER_CONFIG = {
       "deepseek-ai/DeepSeek-V4-Pro",
       "zai-org/GLM-5.2",
       "moonshotai/Kimi-K2.7-Code",
+      "moonshotai/Kimi-K3",
+      "thinkingmachines/inkling",
     ],
   },
   "fireworks-ai": {
@@ -147,6 +149,12 @@ const MODEL_PRICING = {
     cache_write: 3.125,
     long_context_threshold: 272000,
   },
+  "anthropic/claude-opus-5": {
+    input: 5,
+    output: 25,
+    cache_read: 0.5,
+    cache_write: 6.25,
+  },
   "baseten/zai-org/GLM-5.2": {
     input: 1.4,
     output: 4.4,
@@ -166,6 +174,16 @@ const MODEL_PRICING = {
     input: 0.95,
     output: 4,
     cache_read: 0.16,
+  },
+  "baseten/moonshotai/Kimi-K3": {
+    input: 3,
+    output: 15,
+    cache_read: 0.3,
+  },
+  "baseten/thinkingmachines/inkling": {
+    input: 1,
+    output: 4.05,
+    cache_read: 0.17,
   },
   "baseten/deepseek-ai/DeepSeek-V4-Pro": {
     input: 1.74,
@@ -268,6 +286,33 @@ export function isolatedOmpEnvironment({
   };
 }
 
+export function managedOmpEnvironment({
+  baseEnv = process.env,
+  configContent,
+  configHome,
+  dataHome,
+  cwd,
+  launcherCwd = os.tmpdir(),
+}) {
+  const environment = isolatedOmpEnvironment({
+    baseEnv,
+    configContent,
+    configHome,
+    dataHome,
+    cwd,
+  });
+  environment.PWD = launcherCwd;
+  environment.INIT_CWD = launcherCwd;
+  for (const name of ["XDG_CONFIG_HOME", "XDG_DATA_HOME"]) {
+    if (baseEnv[name] === undefined) {
+      delete environment[name];
+    } else {
+      environment[name] = baseEnv[name];
+    }
+  }
+  return environment;
+}
+
 export function buildOmpCommand({
   cwd,
   model,
@@ -277,7 +322,7 @@ export function buildOmpCommand({
   configPath,
 }) {
   const command = [
-    "omp", "-p", "--mode", "json", "--cwd", cwd, "--model", model,
+    "notion", "local", "pi", "-p", "--mode", "json", "--cwd", cwd, "--model", model,
     "--thinking", thinking,
   ];
   if (configPath) command.push("--config", configPath);
@@ -285,8 +330,29 @@ export function buildOmpCommand({
   return command;
 }
 
+export function buildOmpCatalogCommand() {
+  return ["notion", "local", "pi", "models", "--json"];
+}
+
+export function extractOmpJsonDocument(source) {
+  const line = String(source).split("\n").find((candidate) => {
+    const trimmed = candidate.trim();
+    return trimmed.startsWith("{") && trimmed.endsWith("}");
+  });
+  if (!line) throw new Error("OMP command did not emit a JSON document");
+  return line;
+}
+
+export function extractOmpVersion(source) {
+  const match = String(source).match(/^omp(?:\/| v)[^\s]+$/mu);
+  if (!match) throw new Error("Managed Pi launcher did not report an OMP version");
+  return match[0];
+}
+
 export function parseOmpEvents(source) {
   const events = [];
+  let activeAssistantMessage;
+  let lastAssistantFinish;
   for (const line of String(source).split("\n")) {
     if (!line.trim()) continue;
     let values;
@@ -300,19 +366,76 @@ export function parseOmpEvents(source) {
     for (const event of values) {
       const type = event.type;
       if (type === "message_update" && event.assistantMessageEvent?.type === "text_delta") {
-        events.push({ type: "text", timestamp: event.timestamp, part: { text: event.assistantMessageEvent.delta } });
+        const index = events.push({
+          type: "text",
+          timestamp: event.timestamp,
+          part: { text: event.assistantMessageEvent.delta },
+        }) - 1;
+        activeAssistantMessage?.actionIndices.push(index);
+      } else if (type === "message_update" && event.assistantMessageEvent?.type === "thinking_delta") {
+        const index = events.push({
+          type: "reasoning",
+          timestamp: event.timestamp,
+          part: { text: event.assistantMessageEvent.delta },
+        }) - 1;
+        activeAssistantMessage?.actionIndices.push(index);
       } else if (type === "tool_execution_start") {
-        events.push({ type: "tool_use", timestamp: event.timestamp, part: { tool: event.toolName, state: { input: event.args ?? event.input ?? {}, time: { start: event.timestamp } } } });
+        const timestamp = event.timestamp ?? lastAssistantFinish;
+        events.push({ type: "tool_use", timestamp, part: { tool: event.toolName, state: { input: event.args ?? event.input ?? {}, time: { start: timestamp } } } });
+      } else if (type === "message_start" && event.message?.role === "assistant") {
+        const timestamp = event.message.timestamp;
+        activeAssistantMessage = { actionIndices: [], timestamp };
+        events.push({ type: "step_start", timestamp });
+      } else if (type === "message_end" && event.message?.role === "assistant") {
+        const message = event.message;
+        const firstTokenAt = Number.isFinite(message.ttft)
+          ? message.timestamp + message.ttft
+          : message.timestamp;
+        for (const index of activeAssistantMessage?.actionIndices ?? []) {
+          if (events[index].timestamp === undefined) events[index].timestamp = firstTokenAt;
+        }
+        const duration = Number.isFinite(message.duration) ? message.duration : 0;
+        lastAssistantFinish = message.timestamp + duration;
+        events.push({
+          type: "step_finish",
+          timestamp: lastAssistantFinish,
+          part: {
+            reason: message.stopReason ?? "stop",
+            cost: message.usage?.cost?.total,
+            tokens: normalizeOmpUsage(message.usage),
+          },
+        });
+        activeAssistantMessage = undefined;
       } else if (type === "turn_start") {
-        events.push({ type: "step_start", timestamp: event.timestamp });
+        if (event.timestamp !== undefined) {
+          events.push({ type: "step_start", timestamp: event.timestamp });
+        }
       } else if (type === "turn_end" || type === "agent_end") {
-        events.push({ type: "step_finish", timestamp: event.timestamp, part: { reason: "stop", tokens: event.usage } });
+        if (event.timestamp !== undefined) {
+          events.push({ type: "step_finish", timestamp: event.timestamp, part: { reason: "stop", tokens: event.usage } });
+        }
       } else {
         events.push(event);
       }
     }
   }
   return events;
+}
+
+function normalizeOmpUsage(usage) {
+  if (!usage) return undefined;
+  const reasoning = Number(usage.reasoning ?? usage.reasoningTokens ?? 0);
+  const output = Number(usage.output ?? 0);
+  return {
+    input: usage.input,
+    output,
+    reasoning: 0,
+    reasoning_in_output: reasoning,
+    cache: {
+      read: usage.cache?.read ?? usage.cacheRead,
+      write: usage.cache?.write ?? usage.cacheWrite,
+    },
+  };
 }
 
 export function parseOmpModelCatalog(source) {
