@@ -79,15 +79,6 @@ const TRUSTED_PROVIDER_CONFIG = {
     options: {
       baseURL: "https://inference.baseten.co/v1",
     },
-    models: {
-      "zai-org/GLM-5.2": {
-        limit: {
-          context: 202720,
-          input: 202720,
-          output: 128000,
-        },
-      },
-    },
     whitelist: [
       "deepseek-ai/DeepSeek-V4-Pro",
       "zai-org/GLM-5.2",
@@ -158,7 +149,7 @@ const MODEL_PRICING = {
   "baseten/zai-org/GLM-5.2": {
     input: 1.4,
     output: 4.4,
-    cache_read: 0.26,
+    cache_read: 0.14,
   },
   "fireworks-ai/accounts/fireworks/models/glm-5p2": {
     input: 1.4,

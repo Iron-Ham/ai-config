@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "generated_date": "2026-07-28",
+  "evidence_class": "strict_advisor_disabled_production_shaped_confirmation",
+  "directions": {"quality": "higher_is_better", "quality_value": "higher_is_better", "weighted_quality_cost_speed": "higher_is_better", "rank": "1_is_best"},
+  "timing_policy": {
+    "raw_model_session_seconds": "immutable_audit_measurement",
+    "rate_limit_normalized_seconds": "raw_minus_recorded_429_response_and_retry_backoff_time",
+    "provider_incident_normalized_seconds": "raw_minus_recorded_provider_error_response_and_retry_backoff_time",
+    "published_speed_basis": "rate_limit_normalized_seconds",
+    "censoring_rule": "provider-dominated incomplete routes are excluded from model-quality and speed aggregates"
+  },
+  "provider_reported_throughput_context_tps": {
+    "source": "deployment_context_not_benchmark_measurement",
+    "kimi_k3": 31,
+    "sol": 40,
+    "opus_5": [50, 60],
+    "terra": [55, 60],
+    "luna": 60,
+    "glm_5_2": 54
+  },
+  "matched_workloads": [
+    {
+      "workload": "modern_client",
+      "kimi_k3": {"quality": 82.6667, "handoff": "carry_with_repair", "cost_usd": 2.745477, "raw_seconds": 1089.9569, "provider_normalized_seconds": 1057.385, "http_429_count": 2, "stream_stall_count": 0, "quality_value": 56.493, "weighted": 68.671, "eligible": true},
+      "opus_5_high": {"quality": 86, "handoff": "carry_with_repair", "cost_usd": 6.194617, "raw_seconds": 689.1075, "provider_normalized_seconds": 689.1075, "http_429_count": 0, "stream_stall_count": 0, "quality_value": 28.19, "weighted": 64.243, "eligible": true}
+    },
+    {
+      "workload": "native_editor",
+      "kimi_k3": {"quality": 71.6667, "handoff": "carry_with_repair", "cost_usd": 2.625086, "raw_seconds": 1141.4313, "provider_normalized_seconds": 1141.4313, "http_429_count": 0, "stream_stall_count": 0, "quality_value": 36.809, "weighted": 53.631, "eligible": true},
+      "opus_5_high": {"quality": 71.6667, "handoff": "carry_with_repair", "cost_usd": 2.715274, "raw_seconds": 498.1168, "provider_normalized_seconds": 498.1168, "http_429_count": 0, "stream_stall_count": 0, "quality_value": 35.586, "weighted": 61.255, "eligible": true}
+    },
+    {
+      "workload": "android_maintenance",
+      "kimi_k3": {"status": "provider_censored", "observed_partial_quality": 5.6667, "cost_usd": 17.875513, "raw_seconds": 4068.8419, "provider_normalized_seconds": 3964.953, "provider_incident_sensitivity_seconds": 1166.796, "http_429_count": 6, "stream_stall_count": 21, "eligible": false},
+      "opus_5_high": {"quality": 72.6667, "handoff": "carry_with_repair", "cost_usd": 8.125036, "raw_seconds": 948.068, "provider_normalized_seconds": 948.068, "http_429_count": 0, "stream_stall_count": 0, "quality_value": 38.371, "weighted": 63.023, "eligible": true}
+    },
+    {
+      "workload": "collection_query",
+      "kimi_k3": {"quality": 78.6667, "handoff": "carry_with_repair", "cost_usd": 18.378508, "raw_seconds": 6242.3886, "provider_normalized_seconds": 5352.175, "provider_incident_sensitivity_seconds": 5159.122, "http_429_count": 51, "stream_stall_count": 1, "quality_value": 48.682, "weighted": 59.959, "eligible": true},
+      "opus_5_high": {"quality": 81.6667, "handoff": "carry_with_repair", "cost_usd": 22.716984, "raw_seconds": 2051.4058, "provider_normalized_seconds": 2051.4058, "http_429_count": 0, "stream_stall_count": 0, "quality_value": 44.065, "weighted": 67.906, "eligible": true}
+    },
+    {
+      "workload": "desktop_native",
+      "kimi_k3": {"quality": 54, "handoff": "carry_with_repair", "cost_usd": 1.015444, "raw_seconds": 1790.2871, "provider_normalized_seconds": 1744.581, "provider_incident_sensitivity_seconds": 603.529, "http_429_count": 2, "stream_stall_count": 9, "quality_value": 15.746, "weighted": 41.684, "eligible": true},
+      "opus_5_high": {"quality": 86, "handoff": "carry_with_repair", "cost_usd": 4.124302, "raw_seconds": 841.5873, "provider_normalized_seconds": 841.5873, "http_429_count": 0, "stream_stall_count": 0, "quality_value": 15.66, "weighted": 59.319, "eligible": true}
+    },
+    {
+      "workload": "native_offline_data",
+      "kimi_k3": {"quality": 1, "handoff": "redrive", "cost_usd": 0.531752, "raw_seconds": 189.4609, "provider_normalized_seconds": 189.4609, "http_429_count": 0, "stream_stall_count": 0, "quality_value": 0, "weighted": 40, "eligible": false},
+      "opus_5_high": {"quality": 66, "handoff": "carry_with_repair", "cost_usd": 12.053187, "raw_seconds": 1443.4185, "provider_normalized_seconds": 1443.4185, "http_429_count": 0, "stream_stall_count": 0, "quality_value": 1.268, "weighted": 20.322, "eligible": true}
+    },
+    {
+      "workload": "public_api",
+      "kimi_k3": {"quality": 0.3333, "handoff": "redrive", "cost_usd": 3.511974, "raw_seconds": 1326.602, "provider_normalized_seconds": 1065.291, "http_429_count": 16, "stream_stall_count": 0, "quality_value": 0, "weighted": 40, "eligible": false},
+      "opus_5_high": {"quality": 58.3333, "handoff": "carry_with_repair", "cost_usd": 20.831205, "raw_seconds": 1632.13, "provider_normalized_seconds": 1632.13, "http_429_count": 0, "stream_stall_count": 0, "quality_value": 3.346, "weighted": 25.915, "eligible": true}
+    },
+    {
+      "workload": "mixed_monetization",
+      "kimi_k3": {"quality": 62, "handoff": "carry_with_repair", "cost_usd": 17.250524, "raw_seconds": 5271.589, "provider_normalized_seconds": 4038.322, "http_429_count": 72, "stream_stall_count": 0, "quality_value": 23.833, "weighted": 45.698, "eligible": true},
+      "opus_5_high": {"quality": 57.6667, "handoff": "carry_with_repair", "cost_usd": 22.222647, "raw_seconds": 1722.4675, "provider_normalized_seconds": 1722.4675, "http_429_count": 0, "stream_stall_count": 0, "quality_value": 14.886, "weighted": 45.913, "eligible": true}
+    }
+  ],
+  "mutually_carryable_pair_summary": {
+    "workload_count": 5,
+    "kimi_k3_weighted_mean": 53.929,
+    "opus_5_high_weighted_mean": 59.727,
+    "kimi_k3_quality_value_mean": 36.313,
+    "opus_5_high_quality_value_mean": 27.678,
+    "kimi_k3_weighted_wins": 1,
+    "opus_5_high_weighted_wins": 4,
+    "kimi_k3_quality_value_wins": 5,
+    "opus_5_high_quality_value_wins": 0
+  },
+  "unpaired_or_censored": [
+    {"workload": "distributed_systems", "route": "kimi_k3", "quality": 87.3333, "handoff": "carry_with_repair", "cost_usd": 3.04951, "raw_seconds": 1717.2759, "provider_normalized_seconds": 1649.718},
+    {"workload": "agent_runtime", "route": "kimi_k3", "status": "provider_censored_and_treatment_excluded", "cost_usd": 7.056149, "raw_seconds": 4844.6116, "provider_normalized_seconds": 3681.018, "provider_incident_sensitivity_seconds": 2048.706, "http_429_count": 66, "stream_stall_count": 11},
+    {"workload": "agent_runtime", "route": "opus_5_high", "quality": 70.6667, "handoff": "carry_with_repair", "cost_usd": 20.630488, "raw_seconds": 2098.7809}
+  ]
+}

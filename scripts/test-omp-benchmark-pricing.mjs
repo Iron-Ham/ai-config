@@ -91,7 +91,7 @@ assert.equal(
     finish({ input: 100, output: 20, reasoning: 5, cacheRead: 50 }),
     "baseten/zai-org/GLM-5.2",
   ),
-  0.000263,
+  0.000257,
 );
 assert.equal(
   recomputedRequestCost(
