@@ -38,6 +38,7 @@ These instructions apply to work in this repository. More-specific `AGENTS.md` f
 - Work on the intended task branch; do not commit directly to a protected branch.
 - Use concise, repository-consistent commit messages. Do not add assistant, model, tool-provider, or generated-attribution text.
 - Commit, push, open a pull request, request review, or merge only when explicitly asked.
+- Do not reply to pull-request comments unless the user explicitly authorizes the response.
 - Before committing, inspect status and the intended diff, and stage only files in scope.
 - Before pushing or opening a pull request, update from the correct base branch, resolve conflicts, run proportionate validation, and inspect the final status and diff.
 - Pull requests should clearly describe what changed, why it changed, and how it was validated.
