@@ -33,33 +33,36 @@
         {"route":"kimi-k3-baseten","scores":[87,92,87],"quality_mean":88.6667,"cost_usd":4.4549,"model_session_seconds":1760.323,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair","quality_value":35.1749,"quality_value_rank":4,"weighted_quality_cost_speed":59.6865,"weighted_rank":4},
         {"route":"sol-high","scores":[84,81,92],"quality_mean":85.6667,"cost_usd":7.498417,"model_session_seconds":724.313,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair","quality_value":18.8476,"quality_value_rank":5,"weighted_quality_cost_speed":57.9674,"weighted_rank":5},
         {"route":"opus-5-high","scores":[91,87,85],"quality_mean":87.6667,"cost_usd":16.187242,"model_session_seconds":1315.521,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair","quality_value":9.3566,"quality_value_rank":6,"weighted_quality_cost_speed":50.918,"weighted_rank":6},
-        {"route":"glm-5.2-max-baseten","scores":[72,68,79],"quality_mean":73,"cost_usd":11.731402,"model_session_seconds":2600.81,"validation":"fail","compliance":"compliant","handoff":"carry-with-repair","quality_value":7.4543,"quality_value_rank":7,"weighted_quality_cost_speed":31.6827,"weighted_rank":7,"eligibility_note":"candidate-native correctness failure"}
+        {"route":"glm-5.2-max-baseten","scores":[72,68,79],"quality_mean":73,"cost_usd":11.731402,"model_session_seconds":2600.81,"validation":"fail","compliance":"compliant","handoff":"carry-with-repair","quality_value":7.4543,"quality_value_rank":7,"weighted_quality_cost_speed":31.6827,"weighted_rank":7,"eligibility_note":"candidate-native correctness failure"},
+        {"route":"inkling-baseten","scores":[10,6,7],"quality_mean":7.6667,"cost_usd":3.260315,"model_session_seconds":787.542,"validation":"fail","compliance":"compliant","handoff":"redrive","quality_value":0.0311,"quality_value_rank":8,"weighted_quality_cost_speed":28.9918,"weighted_rank":8,"eligibility_note":"syntactically invalid candidate patch"}
       ]
     },
     {
       "label": "native-mobile editor behavior",
       "status": "complete",
       "routes": [
-        {"route":"terra-xhigh","scores":[60,67,64],"quality_mean":63.6667,"cost_usd":1.05225,"model_session_seconds":242.843,"handoff":"carry-with-repair"},
-        {"route":"luna-high","scores":[63,76,73],"quality_mean":70.6667,"cost_usd":0.99311,"model_session_seconds":410.893,"handoff":"carry-with-repair"},
-        {"route":"luna-max","scores":[77,65,50],"quality_mean":64,"cost_usd":1.61168,"model_session_seconds":806.608,"handoff":"carry-with-repair"},
-        {"route":"sol-high","scores":[70,66,72],"quality_mean":69.3333,"cost_usd":5.4433,"model_session_seconds":736.967,"handoff":"carry-with-repair"},
-        {"route":"kimi-k3-baseten","scores":[76,70,79],"quality_mean":75,"cost_usd":2.53855,"model_session_seconds":1012.024,"handoff":"carry-with-repair"},
-        {"route":"glm-5.2-max-baseten","scores":[80,80,71],"quality_mean":77,"cost_usd":2.46063,"model_session_seconds":1026.743,"handoff":"carry-with-repair"},
-        {"route":"opus-5-high","scores":[78,78,68],"quality_mean":74.6667,"cost_usd":5.02773,"model_session_seconds":602.711,"handoff":"carry-with-repair"}
+        {"route":"terra-xhigh","scores":[60,67,64],"quality_mean":63.6667,"cost_usd":1.05225,"model_session_seconds":242.843,"validation":"pass-after-reconciliation","compliance":"compliant","handoff":"carry-with-repair","quality_value":24.3566,"quality_value_rank":2,"weighted_quality_cost_speed":54.0791,"weighted_rank":2},
+        {"route":"luna-high","scores":[63,76,73],"quality_mean":70.6667,"cost_usd":0.99311,"model_session_seconds":410.893,"validation":"pass-after-reconciliation","compliance":"compliant","handoff":"carry-with-repair","quality_value":35.2894,"quality_value_rank":1,"weighted_quality_cost_speed":55.0388,"weighted_rank":1},
+        {"route":"luna-max","scores":[77,65,50],"quality_mean":64,"cost_usd":1.61168,"model_session_seconds":806.608,"validation":"pass-after-reconciliation","compliance":"compliant","handoff":"carry-with-repair","quality_value":16.1532,"quality_value_rank":5,"weighted_quality_cost_speed":35.6495,"weighted_rank":6},
+        {"route":"sol-high","scores":[70,66,72],"quality_mean":69.3333,"cost_usd":5.4433,"model_session_seconds":736.967,"validation":"pass-after-reconciliation","compliance":"compliant","handoff":"carry-with-repair","quality_value":6.0808,"quality_value_rank":7,"weighted_quality_cost_speed":29.5015,"weighted_rank":7},
+        {"route":"kimi-k3-baseten","scores":[76,70,79],"quality_mean":75,"cost_usd":2.53855,"model_session_seconds":1012.024,"validation":"pass-after-reconciliation","compliance":"compliant","handoff":"carry-with-repair","quality_value":16.5043,"quality_value_rank":4,"weighted_quality_cost_speed":38.6922,"weighted_rank":4},
+        {"route":"glm-5.2-max-baseten","scores":[80,80,71],"quality_mean":77,"cost_usd":2.46063,"model_session_seconds":1026.743,"validation":"pass-after-reconciliation","compliance":"compliant","handoff":"carry-with-repair","quality_value":18.4257,"quality_value_rank":3,"weighted_quality_cost_speed":41.0298,"weighted_rank":3},
+        {"route":"opus-5-high","scores":[78,78,68],"quality_mean":74.6667,"cost_usd":5.02773,"model_session_seconds":602.711,"validation":"pass-after-reconciliation","compliance":"compliant","handoff":"carry-with-repair","quality_value":8.2225,"quality_value_rank":6,"weighted_quality_cost_speed":35.9585,"weighted_rank":5},
+        {"route":"inkling-baseten","scores":[0,0,0],"quality_mean":0,"cost_usd":0.132021,"model_session_seconds":11.926,"validation":"fail","compliance":"compliant","handoff":"redrive","quality_value":0,"quality_value_rank":8,"weighted_quality_cost_speed":0,"weighted_rank":8,"eligibility_note":"zero-byte artifact; throughput efficiencies are zeroed because no implementation work was delivered"}
       ]
     },
     {
       "label": "native-mobile offline data",
       "status": "complete",
       "routes": [
-        {"route":"sol-high-repeat-1","scores":[83,88,64],"quality_mean":78.3333,"cost_usd":3.688683,"model_session_seconds":1045.794,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair"},
-        {"route":"sol-high-repeat-2","scores":[91,87,69],"quality_mean":82.3333,"cost_usd":4.608483,"model_session_seconds":920.772,"validation":"pass","compliance":"noncompliant","handoff":"carry-with-repair"},
-        {"route":"terra-xhigh-new","scores":[39,43,39],"quality_mean":40.3333,"cost_usd":3.049681,"model_session_seconds":690.327,"validation":"fail","compliance":"compliant","handoff":"redrive"},
-        {"route":"luna-high","scores":[56,63,53],"quality_mean":57.3333,"cost_usd":1.8931035,"model_session_seconds":727.329,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair"},
-        {"route":"glm-5.2-max-baseten","scores":[67,67,55],"quality_mean":63,"cost_usd":7.242295,"model_session_seconds":1311.907,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair"},
-        {"route":"kimi-k3-baseten","scores":[67,74,52],"quality_mean":64.3333,"cost_usd":5.213288,"model_session_seconds":1913.126,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair"},
-        {"route":"opus-5-high","scores":[63,78,54],"quality_mean":65,"cost_usd":14.329737,"model_session_seconds":1016.263,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair"}
+        {"route":"sol-high-repeat-1","scores":[83,88,64],"quality_mean":78.3333,"cost_usd":3.688683,"model_session_seconds":1045.794,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair","quality_value":24.6685,"quality_value_rank":1,"weighted_quality_cost_speed":50.7438,"weighted_rank":2,"champion_note":"eligible role champion"},
+        {"route":"sol-high-repeat-2","scores":[91,87,69],"quality_mean":82.3333,"cost_usd":4.608483,"model_session_seconds":920.772,"validation":"pass","compliance":"noncompliant","handoff":"carry-with-repair","quality_value":22.9268,"quality_value_rank":2,"weighted_quality_cost_speed":54.0624,"weighted_rank":1,"eligibility_note":"higher-scoring source artifact is ineligible and does not define the champion"},
+        {"route":"terra-xhigh-new","scores":[39,43,39],"quality_mean":40.3333,"cost_usd":3.049681,"model_session_seconds":690.327,"validation":"fail","compliance":"compliant","handoff":"redrive","quality_value":4.073,"quality_value_rank":6,"weighted_quality_cost_speed":33.2015,"weighted_rank":5},
+        {"route":"luna-high","scores":[56,63,53],"quality_mean":57.3333,"cost_usd":1.8931035,"model_session_seconds":727.329,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair","quality_value":18.8461,"quality_value_rank":3,"weighted_quality_cost_speed":49.3542,"weighted_rank":3},
+        {"route":"glm-5.2-max-baseten","scores":[67,67,55],"quality_mean":63,"cost_usd":7.242295,"model_session_seconds":1311.907,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair","quality_value":6.5361,"quality_value_rank":5,"weighted_quality_cost_speed":28.7708,"weighted_rank":8},
+        {"route":"kimi-k3-baseten","scores":[67,74,52],"quality_mean":64.3333,"cost_usd":5.213288,"model_session_seconds":1913.126,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair","quality_value":9.6687,"quality_value_rank":4,"weighted_quality_cost_speed":30.0139,"weighted_rank":6},
+        {"route":"opus-5-high","scores":[63,78,54],"quality_mean":65,"cost_usd":14.329737,"model_session_seconds":1016.263,"validation":"pass","compliance":"compliant","handoff":"carry-with-repair","quality_value":3.6281,"quality_value_rank":7,"weighted_quality_cost_speed":29.1175,"weighted_rank":7},
+        {"route":"inkling-baseten","scores":[42,30,32],"quality_mean":34.6667,"cost_usd":2.610398,"model_session_seconds":632.608,"validation":"fail","compliance":"compliant","handoff":"redrive","quality_value":3.0214,"quality_value_rank":8,"weighted_quality_cost_speed":35.6301,"weighted_rank":4,"eligibility_note":"candidate-native Rust tests passed, but deterministic Swift compile and delivery defects make the artifact a Redrive"}
       ]
     },
     {
@@ -79,6 +82,7 @@
     {"route":"luna-max","status":"continue","scope":"distributed-systems-and-native-editor","exclusion":"collection-query execution"},
     {"route":"kimi-k3-baseten","status":"continue","scope":"distributed-systems-and-native-mobile confirmation"},
     {"route":"glm-5.2-max-baseten","status":"continue","scope":"native-mobile confirmation"},
-    {"route":"opus-5-high","status":"continue","scope":"role-scoped premium alternative"}
+    {"route":"opus-5-high","status":"continue","scope":"role-scoped premium alternative"},
+    {"route":"inkling-baseten","status":"stop","scope":"realtime-ios-editor-and-ios-offline","reason":"after three production-shaped trials, no score distribution overlaps the eligible champion for its measured role; cost and latency did not determine elimination"}
   ]
 }
