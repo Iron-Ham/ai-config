@@ -41,27 +41,28 @@ The strongest current evidence is the **final, source-adjudicated matched switch
 
 ### Expanded OMP candidate cohort
 
-The July OMP cohort added Kimi K3, Opus 5 high, GLM 5.2 max, and Luna max, then repeated top incumbent routes on production-shaped distributed-systems, native-editor, native offline/data, and collection-query execution tasks. Every artifact received task-focused validation, a three-model blind panel, and source reconciliation. The cohort supports role-specific follow-up, not a new general default.
+The July OMP cohort added Kimi K3, Opus 5 high, GLM 5.2 max, Luna max, and Inkling, then repeated top incumbent routes on production-shaped distributed-systems, native-editor, native offline/data, and collection-query execution tasks. Every candidate completed at least three production-shaped trials before its role-scoped promotion decision. Every artifact received task-focused validation, a three-model blind panel, and source reconciliation. The cohort supports role-specific follow-up, not a new general default.
 
 | Distributed-systems route | Mean quality | Cost | Model-session time | Weighted Q/C/speed rank | Handoff |
 |---|---:|---:|---:|---:|---|
-| Luna max | 85.00 | $2.338 | 804.1 s | **1/7** | Carry with repair |
-| Luna high | 79.00 | $2.248 | 647.7 s | **2/7** | Carry with repair |
-| Terra xhigh | 81.33 | $3.267 | 615.7 s | **3/7** | Carry with repair |
-| Kimi K3 · Baseten | **88.67** | $4.455 | 1,760.3 s | 4/7 | Carry with repair |
-| Sol high | 85.67 | $7.498 | 724.3 s | 5/7 | Carry with repair |
-| Opus 5 high | 87.67 | $16.187 | 1,315.5 s | 6/7 | Carry with repair |
-| GLM 5.2 max · Baseten | 73.00 | $11.731 | 2,600.8 s | 7/7 | Carry with repair; validation failed |
+| Luna max | 85.00 | $2.338 | 804.1 s | **1/8** | Carry with repair |
+| Luna high | 79.00 | $2.248 | 647.7 s | **2/8** | Carry with repair |
+| Terra xhigh | 81.33 | $3.267 | 615.7 s | **3/8** | Carry with repair |
+| Kimi K3 · Baseten | **88.67** | $4.455 | 1,760.3 s | 4/8 | Carry with repair |
+| Sol high | 85.67 | $7.498 | 724.3 s | 5/8 | Carry with repair |
+| Opus 5 high | 87.67 | $16.187 | 1,315.5 s | 6/8 | Carry with repair |
+| GLM 5.2 max · Baseten | 73.00 | $11.731 | 2,600.8 s | 7/8 | Carry with repair; validation failed |
+| Inkling · Baseten | 7.67 | $3.260 | 787.5 s | 8/8 | Redrive; invalid source artifact |
 
 **Within-experiment:** Luna max produced Sol-range quality at less than one third of Sol's observed route cost and led the policy-weighted metric. Kimi K3 led raw quality but took nearly three times Terra's model-session time. Opus 5 was also strong but cost almost five times Terra. GLM's candidate-native test failure is a true artifact defect, not harness noncompliance. This one task earns Luna max and Kimi matched follow-up; it does not justify changing the shared default.
 
-The new native-editor panel remained tightly clustered and every artifact required repair. GLM led the new mean at 77.0, followed by Kimi K3 at 75.0 and Opus 5 at 74.67; historical Sol and Terra repeats remain the more stable role controls. Luna high scored 70.67 at $0.993, while Luna max scored 64.0 at $1.612 and took almost twice as long. Max effort did not improve Luna on this editor task.
+The repairable native-editor panel remained tightly clustered. GLM led the new mean at 77.0, followed by Kimi K3 at 75.0 and Opus 5 at 74.67; historical Sol and Terra repeats remain the more stable role controls. Luna high scored 70.67 at $0.993, while Luna max scored 64.0 at $1.612 and took almost twice as long. Max effort did not improve Luna on this editor task. Inkling produced no patch and scored 0/0/0; its 11.9-second session is a failed tool-use result, not comparable implementation throughput.
 
-On native offline/data work, Sol remains the role champion: its matched repeats scored 78.33 and 82.33. The new Luna high, GLM, Kimi, and Opus results scored 57.33–65.0 and all required repair. Kimi, GLM, and Opus overlap the lower edge of Sol's per-judge distributions, so the study retains them for role-specific confirmation rather than claiming a definitive cut. None currently offers a better cost/quality decision than Sol for that role.
+On native offline/data work, Sol remains the role champion through its **eligible, compliant** 83/88/64 panel, mean 78.33. A second source artifact scored 82.33 but was noncompliant and cannot define the champion. Kimi, GLM, and Opus scored 63.0–65.0 and overlap the lower edge of the eligible Sol distribution, so the study retains them for role-specific confirmation. Inkling scored 42/30/32, mean 34.67; candidate-native Rust tests passed, but deterministic Swift compile breaks, a missing checked-in framework rebuild, and behavioral defects leave the artifact a Redrive. Its distribution does not overlap the eligible champion. None currently offers a better cost/quality decision than Sol for that role.
 
 The matched collection-query execution control separated the routes more clearly. Terra xhigh scored **80.67** and ranked first on both value metrics; Sol high scored **70.33**, and Luna max scored **68.33**. Sol's 68–75 panel overlaps Terra's 75–88 panel at the boundary with the same reconciled Carry-with-repair handoff, so the retention rule keeps Sol in the role. Luna's 65–72 panel does not overlap Terra's, its mean is 12.33 points lower, and it was both slower and more expensive. Luna max is therefore screened out of this role only while remaining retained for distributed-systems and native-editor work.
 
-**Retention rule:** a challenger cannot be cut from a role when its mean is within five points of the champion or its per-trial judge-score distribution overlaps the champion's, provided deterministic and source-reconciled evidence supports the same handoff band. Cost and latency rank same-range routes but cannot eliminate them. A shared coarse handoff label by itself is insufficient, and the decision is role-scoped rather than a universal model-family judgment.
+**Retention rule:** a challenger cannot be cut from a role when its mean is within five points of the eligible champion or its per-trial judge-score distribution overlaps the champion's, provided deterministic and source-reconciled evidence supports the same handoff band. Invalid or noncompliant higher scores cannot define the champion. Cost and latency rank same-range routes but cannot eliminate them. A shared coarse handoff label by itself is insufficient, and the decision is role-scoped rather than a universal model-family judgment. Inkling completed three trials before being screened out: 10/6/7 on distributed systems, 0/0/0 on native editor, and 42/30/32 on native offline/data; none overlapped its eligible role champion.
 
 The frozen judge-packet provenance is intentionally mixed: the native-editor task used packet schema v1, while native offline/data and modern client used schema v2. Historical judge outputs were not silently regenerated after the harness changed. Final source reconciliation and scoring were applied to the retained outputs under a common decision process; future matched runs use schema v2.
 
@@ -243,6 +244,25 @@ The benchmark runners pin trusted provider metadata, reject a selected route tha
 | Project-copy utility | Luna low, measured recommendation | Not an installed default; re-evaluate if provider, prompt, or output contract changes |
 
 Provider-pinned experiment routes should keep model, provider, serving path, and reasoning setting visible. Fireworks Standard and Fast must remain separate treatments until matched outcomes exist; neither should be selected automatically.
+
+### OMP role translation
+
+Production implementation trials transfer most directly to OMP's `default` controller and full-capability `task` worker. They do not establish winners for planning, reviewing, vision, design, commit text, or tiny utilities.
+
+| OMP role | Recommendation | Evidence boundary |
+|---|---|---|
+| `default` | Terra xhigh | General implementation control; no new route demonstrated broad default superiority |
+| `task` | Inherit the active controller by default | Kimi K3 is a role-scoped Realtime/iOS challenger, but a single generic task slot cannot encode those domain boundaries safely; Opus 5 is an explicit premium alternative, not a default |
+| `slow` | Sol high pending a reviewer-specific study | Sol is the premium implementation control, not a proven reviewer winner; the judge panel was not a randomized judge-quality evaluation |
+| `plan` | Inherit the active controller | No current matched planning evidence supports Kimi K3, Opus 5, or Inkling |
+| `advisor` | Disabled | No retained causal evidence justifies an automatic advisor route |
+| `smol` | Keep the existing utility route | The production coding cohort does not transfer to scouting or mechanical utility work |
+| `vision` | Unset / explicit | No vision trial exists |
+| `designer` | Inherit the active controller | No design trial exists |
+| `commit` | Keep the measured commit utility | Kimi K3 is not Kimi K2.7 Code; the implementation result does not transfer across models or output contracts |
+| `tiny` | Keep the measured tiny utility | None of the three new candidates was tested for tiny utility work |
+
+Inkling is screened out only from the three measured implementation roles. Kimi K3 and Opus 5 remain available for matched or explicit use where their quality bands overlap the role champion; cost and latency affect rank, not retention.
 
 ### Historical reader startup proxy
 
