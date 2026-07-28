@@ -105,7 +105,7 @@ try {
     advisor: "openai/gpt-5.6-sol:high",
   });
   assert.equal(profile.hideThinkingBlock, true);
-  assert.deepEqual(profile.advisor, { enabled: true });
+  assert.deepEqual(profile.advisor, { enabled: false });
   assert.equal(profile.task, undefined);
   assert.equal(profile.glob, undefined);
   assert.equal(profile.grep, undefined);
@@ -201,7 +201,7 @@ fi
   assert.equal(installed.modelRoles.smol, "openai/gpt-5.6-luna:high");
   assert.equal(installed.modelRoles.task, "openai/gpt-5.6-terra:high");
   assert.equal(installed.task, undefined);
-  assert.equal(installed.advisor.enabled, true);
+  assert.equal(installed.advisor.enabled, false);
   assert.equal(installed.hideThinkingBlock, true);
   assert.equal(installed.unmanaged.apiKey, "do-not-log-or-replace");
   assert.equal(installed.unmanaged.keep, true);
