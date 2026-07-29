@@ -7,6 +7,8 @@ These instructions apply to work in this repository. More-specific `AGENTS.md` f
 - Inspect the relevant files, configuration, history, and local instructions before proposing or making a change. Do not assume the repository's structure or conventions.
 - Unless asked for planning or discussion, implement the requested change and carry it through focused validation.
 - Prefer the smallest correct change. Do not add compatibility paths, abstractions, dependencies, or tests without a concrete need.
+- Treat maintainability as non-negotiable. Favor clear, conventional implementations that future maintainers can understand and modify.
+- Apply KISS: add safeguards only when required by an explicit contract, an observed failure, or a credible operational constraint. Do not handle hypothetical or theoretical edge cases when doing so materially increases complexity.
 - Preserve user and concurrent work. Keep edits scoped to the request, and stop to reassess if the worktree changes unexpectedly.
 - Keep progress updates concise and record meaningful validation results. Do not claim behavior that was not observed.
 
