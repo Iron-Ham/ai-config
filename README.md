@@ -11,14 +11,14 @@ curl -fsSL https://herdr.dev/install.sh | sh
 ```
 
 ```bash
-git clone git@github.com:Iron-Ham/claude-config.git ~/Developer/claude-config
-cd ~/Developer/claude-config
+git clone git@github.com:Iron-Ham/ai-config.git ~/Developer/ai-config
+cd ~/Developer/ai-config
 ./setup-omp.sh
 ```
 
 `setup-omp.sh` requires `mise`. It installs OMP 17.1.4 when the installed runtime is older or invalid, and retains newer OMP versions. It discovers the profile path using `omp config path`, then merges the repository profile into the global configuration. Set `OMP_AGENT_DIR`, `PI_CODING_AGENT_DIR`, or `OMP_CONFIG_PATH` to select an explicit location. The installer creates private timestamped backups, writes atomically, validates the resulting roles and managed agents, and restores the previous configuration and managed agent files if validation fails.
 
-The installer also symlinks the repository's `AGENTS.md` into the selected OMP global instruction location, `$OMP_AGENT_DIR/AGENTS.md`. It replaces a regular file only after backing it up, preserves an existing link to that repository source, and rejects a link to any other destination.
+The installer also symlinks the repository's `AGENTS.md` into the selected OMP global instruction location, `$OMP_AGENT_DIR/AGENTS.md`. It replaces a regular file only after backing it up, preserves an existing link to that repository source, replaces a dangling link left by moving the repository, and rejects a link that still resolves to another destination.
 
 The installer copies the seven repository-managed agent definitions from `omp/agents/` into `$OMP_AGENT_DIR/agents`: `accessibility_auditor`, `code_reviewer`, `database_optimizer`, `evidence_analyst`, `evidence_reader`, `security_engineer`, and `software_architect`. It replaces only those known files, rejects symlinked managed paths, and leaves unrelated user agent definitions untouched.
 
@@ -72,7 +72,7 @@ pi() {
 
 omp() {
   local OMP_LOCAL_PI=true
-  pi --config "$HOME/Developer/claude-config/omp/omp.defaults.yml" "$@"
+  pi --config "$HOME/Developer/ai-config/omp/omp.defaults.yml" "$@"
 }
 ```
 

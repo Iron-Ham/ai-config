@@ -118,7 +118,7 @@ try {
   assert.match(readme, /command omp "\$\{args\[@\]\}"/);
   assert.match(readme, /_run_notion_local_or_command pi "\$\{args\[@\]\}"/);
   assert.match(readme, /--approval-mode|--auto-approve|--yolo/);
-  assert.match(readme, /pi --config "\$HOME\/Developer\/claude-config\/omp\/omp\.defaults\.yml" "\$@"/);
+  assert.match(readme, /pi --config "\$HOME\/Developer\/ai-config\/omp\/omp\.defaults\.yml" "\$@"/);
 
   writeFile(configPath, [
     "modelRoles:",
@@ -265,6 +265,58 @@ fi
   assert.equal(newerRuntime.exitCode, 0, newerRuntime.stderr.toString());
   const newerRuntimeMiseCalls = fs.readFileSync(miseLog, "utf8").slice(newerRuntimeLogOffset);
   assert.doesNotMatch(newerRuntimeMiseCalls, /-- bun install --global/);
+  const relocatedInstructionTarget = path.join(
+    testRoot,
+    "claude-config",
+    "AGENTS.md",
+  );
+  fs.unlinkSync(globalInstructionPath);
+  fs.symlinkSync(relocatedInstructionTarget, globalInstructionPath);
+  const relocatedInstructions = Bun.spawnSync(["bash", path.join(repoRoot, "setup-omp.sh")], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: homeDir,
+      OMP_MISE_BIN: path.join(stubBin, "mise"),
+      OMP_CALL_LOG: callLog,
+      MISE_CALL_LOG: miseLog,
+      TEST_BUN_BIN: process.execPath,
+      STUB_AGENT_DIR: configDir,
+      PATH: `${stubBin}:${process.env.PATH}`,
+    },
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  assert.equal(relocatedInstructions.exitCode, 0, relocatedInstructions.stderr.toString());
+  assert.equal(fs.lstatSync(globalInstructionPath).isSymbolicLink(), true);
+  assert.equal(fs.readlinkSync(globalInstructionPath), globalInstructionSource);
+
+  const foreignInstructionSource = path.join(testRoot, "foreign", "AGENTS.md");
+  writeFile(foreignInstructionSource, "foreign global instructions\n");
+  fs.unlinkSync(globalInstructionPath);
+  fs.symlinkSync(foreignInstructionSource, globalInstructionPath);
+  const foreignInstructions = Bun.spawnSync(["bash", path.join(repoRoot, "setup-omp.sh")], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      HOME: homeDir,
+      OMP_MISE_BIN: path.join(stubBin, "mise"),
+      OMP_CALL_LOG: callLog,
+      MISE_CALL_LOG: miseLog,
+      TEST_BUN_BIN: process.execPath,
+      STUB_AGENT_DIR: configDir,
+      PATH: `${stubBin}:${process.env.PATH}`,
+    },
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  assert.notEqual(foreignInstructions.exitCode, 0);
+  assert.match(
+    foreignInstructions.stderr.toString(),
+    /refusing to replace non-dangling symlinked global OMP instructions/,
+  );
+  assert.equal(fs.lstatSync(globalInstructionPath).isSymbolicLink(), true);
+  assert.equal(fs.readlinkSync(globalInstructionPath), foreignInstructionSource);
 
   const customTaskConfig = path.join(testRoot, "custom-task", "config.yml");
   writeFile(customTaskConfig, [

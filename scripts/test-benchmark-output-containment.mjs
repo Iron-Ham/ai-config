@@ -33,7 +33,7 @@ function assertRunnerRejectsRepositoryOutput(script, arguments_, outputDir) {
   assert.notEqual(result.exitCode, 0);
   assert.match(
     `${result.stdout.toString()}\n${result.stderr.toString()}`,
-    /raw benchmark --output-dir must resolve outside the claude-config Git root/,
+    /raw benchmark --output-dir must resolve outside the repository Git root/,
   );
   assert.equal(fs.existsSync(outputDir), false);
 }
@@ -44,7 +44,7 @@ function assertRunnerAllowsExternalOutput(script, arguments_, laterError) {
   const output = `${result.stdout.toString()}\n${result.stderr.toString()}`;
   assert.doesNotMatch(
     output,
-    /raw benchmark --output-dir must resolve outside the claude-config Git root/,
+    /raw benchmark --output-dir must resolve outside the repository Git root/,
   );
   assert.match(output, laterError);
 }
@@ -68,7 +68,7 @@ try {
   );
   assert.throws(
     () => assertRawBenchmarkOutputOutsideRepository(insideRepository),
-    /raw benchmark --output-dir must resolve outside the claude-config Git root/,
+    /raw benchmark --output-dir must resolve outside the repository Git root/,
   );
   assert.equal(fs.existsSync(insideRepository), false);
 
@@ -99,7 +99,7 @@ try {
     () => assertRawBenchmarkOutputOutsideRepository(
       path.join(insideLink, "not-created", "results"),
     ),
-    /raw benchmark --output-dir must resolve outside the claude-config Git root/,
+    /raw benchmark --output-dir must resolve outside the repository Git root/,
   );
 
   const externalTarget = path.join(externalRoot, "external-target");
