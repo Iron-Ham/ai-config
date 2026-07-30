@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const CLAUDE_CONFIG_GIT_ROOT = fs.realpathSync(
+const REPOSITORY_GIT_ROOT = fs.realpathSync(
   path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."),
 );
 
@@ -35,9 +35,9 @@ function isPathInside(parent, candidate) {
 
 export function assertRawBenchmarkOutputOutsideRepository(outputDir) {
   const resolvedOutput = canonicalizePotentialPath(outputDir);
-  if (isPathInside(CLAUDE_CONFIG_GIT_ROOT, resolvedOutput)) {
+  if (isPathInside(REPOSITORY_GIT_ROOT, resolvedOutput)) {
     throw new Error(
-      "raw benchmark --output-dir must resolve outside the claude-config Git root",
+      "raw benchmark --output-dir must resolve outside the repository Git root",
     );
   }
   return resolvedOutput;

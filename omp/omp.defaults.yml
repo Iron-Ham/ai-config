@@ -1,4 +1,4 @@
-# Global OMP defaults managed by claude-config.
+# Global OMP defaults managed by ai-config.
 # Model role values use OMP's provider/model:thinking syntax.
 modelRoleStorage: global
 modelRoles:

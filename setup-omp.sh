@@ -60,6 +60,8 @@ original_exists=false
 transaction_failed=true
 global_instruction_backup_path=""
 global_instruction_original_exists=false
+global_instruction_original_was_symlink=false
+global_instruction_original_link_target=""
 global_instruction_dest_path=""
 global_instruction_temp_path=""
 global_instruction_installed=false
@@ -306,11 +308,18 @@ validate_installed_agents() {
 }
 
 prepare_global_instructions() {
+  local current_target
   if [ -L "$global_instruction_dest_path" ]; then
-    if [ "$(readlink "$global_instruction_dest_path")" = "$GLOBAL_INSTRUCTION_SOURCE" ]; then
+    current_target="$(readlink "$global_instruction_dest_path")"
+    if [ "$current_target" = "$GLOBAL_INSTRUCTION_SOURCE" ]; then
       return
     fi
-    die "refusing to replace symlinked global OMP instructions: $global_instruction_dest_path"
+    if [ -e "$global_instruction_dest_path" ]; then
+      die "refusing to replace non-dangling symlinked global OMP instructions: $global_instruction_dest_path"
+    fi
+    global_instruction_original_was_symlink=true
+    global_instruction_original_link_target="$current_target"
+    return
   fi
   if [ -e "$global_instruction_dest_path" ] && [ ! -f "$global_instruction_dest_path" ]; then
     die "global OMP instruction destination is not a regular file: $global_instruction_dest_path"
@@ -325,7 +334,11 @@ prepare_global_instructions() {
 install_global_instructions() {
   local temporary="$OMP_AGENT_DIR/.AGENTS.md.tmp.$$"
   if [ -L "$global_instruction_dest_path" ]; then
-    return
+    if [ "$(readlink "$global_instruction_dest_path")" = "$GLOBAL_INSTRUCTION_SOURCE" ]; then
+      return
+    fi
+    global_instruction_installed=true
+    rm -f "$global_instruction_dest_path"
   fi
   if [ -e "$temporary" ] || [ -L "$temporary" ]; then
     die "temporary global OMP instruction path already exists: $temporary"
@@ -378,7 +391,9 @@ restore_global_instructions() {
     return
   fi
   rm -f "$global_instruction_dest_path"
-  if [ "$global_instruction_original_exists" = true ]; then
+  if [ "$global_instruction_original_was_symlink" = true ]; then
+    ln -s "$global_instruction_original_link_target" "$global_instruction_dest_path"
+  elif [ "$global_instruction_original_exists" = true ]; then
     cp -p "$global_instruction_backup_path" "$global_instruction_dest_path"
   fi
 }

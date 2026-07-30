@@ -35,7 +35,7 @@ If any item is missing, perform read-only discovery or calibration. Do not impro
 2. Verify the source checkout contains both frozen SHAs and is clean.
 3. Prepare dependencies once in the shared checkout. For `notion-next`, select pnpm in `.devex.config.yaml`, run `CI=1 notion install` without a short timeout, and start required local services before candidate isolation.
 4. Query `notion local pi models --json`. Record the exact route, supported effort levels, limits, prices, and catalog fingerprint. Availability is not performance evidence.
-5. Run the retained runtime tests from the `claude-config` root:
+5. Run the retained runtime tests from the `ai-config` root:
 
 ```bash
 bun scripts/test-omp-benchmark-runtime.mjs

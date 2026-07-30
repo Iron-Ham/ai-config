@@ -24,7 +24,7 @@ Keep these live documents synchronized:
 
 ## Public evidence
 
-Public `claude-config` material may contain only privacy-safe aggregates and generic workload labels. Exclude:
+Public `ai-config` material may contain only privacy-safe aggregates and generic workload labels. Exclude:
 
 - private repository, team, product, task, PR, page, symbol, path, commit, session, and fingerprint identifiers;
 - prompts, patches, raw answers, hidden contracts, judge keys, and source excerpts;
