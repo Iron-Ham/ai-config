@@ -44,6 +44,16 @@ function mergeObjects(base, overlay) {
 const profile = readConfig(profilePath);
 const current = readConfig(configPath);
 const merged = mergeObjects(current, profile);
+// `/model` persists the interactive choice as modelRoles.default. The profile
+// supplies a default for first-time setup, but must not replace that choice.
+if (
+  current.modelRoles !== null &&
+  typeof current.modelRoles === "object" &&
+  !Array.isArray(current.modelRoles) &&
+  typeof current.modelRoles.default === "string"
+) {
+  merged.modelRoles.default = current.modelRoles.default;
+}
 
 // Remove the legacy managed task limits without changing custom task settings.
 if (
