@@ -118,10 +118,11 @@ try {
   assert.match(readme, /command omp "\$\{args\[@\]\}"/);
   assert.match(readme, /_run_notion_local_or_command pi "\$\{args\[@\]\}"/);
   assert.match(readme, /--approval-mode|--auto-approve|--yolo/);
-  assert.match(readme, /pi --config "\$HOME\/Developer\/ai-config\/omp\/omp\.defaults\.yml" "\$@"/);
+  assert.doesNotMatch(readme, /pi --config "\$HOME\/Developer\/ai-config\/omp\/omp\.defaults\.yml" "\$@"/);
 
   writeFile(configPath, [
     "modelRoles:",
+    "  default: fireworks/kimi-k3",
     "  advisor: anthropic/claude-sonnet:high",
     "  commit: anthropic/claude-sonnet:high",
     "  vision: openai/gpt-4o:high",
@@ -196,6 +197,7 @@ fi
   assert.doesNotMatch(output, /do-not-log-or-replace|apiKey/i);
 
   const installed = Bun.YAML.parse(fs.readFileSync(configPath, "utf8"));
+  assert.equal(installed.modelRoles.default, "fireworks/kimi-k3");
   assert.equal(installed.modelRoles.advisor, "openai/gpt-5.6-sol:high");
   assert.equal(installed.modelRoles.commit, "baseten/moonshotai/Kimi-K2.7-Code");
   assert.equal(installed.modelRoles.smol, "openai/gpt-5.6-luna:high");
@@ -265,6 +267,8 @@ fi
   assert.equal(newerRuntime.exitCode, 0, newerRuntime.stderr.toString());
   const newerRuntimeMiseCalls = fs.readFileSync(miseLog, "utf8").slice(newerRuntimeLogOffset);
   assert.doesNotMatch(newerRuntimeMiseCalls, /-- bun install --global/);
+  const reinstalled = Bun.YAML.parse(fs.readFileSync(configPath, "utf8"));
+  assert.equal(reinstalled.modelRoles.default, "fireworks/kimi-k3");
   const relocatedInstructionTarget = path.join(
     testRoot,
     "claude-config",
