@@ -14,7 +14,7 @@ Resolve the review target, exact head SHA, latest base SHA, PR title/body/commit
 ## Workflow
 
 1. Read repository and path-local instructions. Load applicable review, platform, testing, simulator, security, or performance skills.
-2. Fetch current refs. Record both exact head SHA and exact declared-base SHA. Create an isolated worktree from the latest base and merge the head with `--no-commit --no-ff`. Review the merged result plus the branch-only diff. In a stack, invalidate the review when either head or base changes; a force-pushed parent can change the effective child patch without changing the child head SHA.
+2. Fetch current refs. Record both exact head SHA and exact declared-base SHA. Check whether the current checkout is the branch under review; if it is not, switch to that branch before inspecting it, preserving unrelated local changes rather than discarding them. Review the checked-out head plus the branch-only diff with `git diff <declared-base>...<head>`. Do not create or require an isolated worktree. In a stack, invalidate the review when either head or base changes; a force-pushed parent can change the effective child patch without changing the child head SHA.
 3. Read every changed file in full. Trace owners, callers, callees, lifecycle hooks, competing state machines, tests, and equivalent implementations.
 4. Build an intent-to-evidence map: every material claim must have current-head evidence that observes the claimed outcome.
 5. Enforce the critical-behavior coverage boundary. For editors, authentication, permissions, data integrity, persistence, payments, and similarly high-impact surfaces:
