@@ -54,10 +54,16 @@ function readAgentDefinition(filePath, expectedName) {
 }
 
 const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+const managedSkillSourceDirs = [
+  path.join(repoRoot, ".agents", "skills"),
+  path.join(repoRoot, "skills"),
+];
 const testRoot = fs.mkdtempSync(path.join(os.tmpdir(), "omp-config-test-"));
 const homeDir = path.join(testRoot, "home");
 const configDir = path.join(homeDir, ".omp", "agent");
 const agentsDir = path.join(configDir, "agents");
+const skillsDir = path.join(configDir, "skills");
+const unmanagedSkillPath = path.join(skillsDir, "user_local", "SKILL.md");
 const configPath = path.join(configDir, "config.yml");
 const unmanagedAgentPath = path.join(agentsDir, "user_local.md");
 const globalInstructionPath = path.join(configDir, "AGENTS.md");
@@ -72,6 +78,62 @@ function writeFile(filePath, content, mode = 0o600) {
   fs.chmodSync(filePath, mode);
 }
 
+function collectManagedSkillSources() {
+  const sources = new Map();
+  for (const sourceDir of managedSkillSourceDirs) {
+    const sourceStat = fs.lstatSync(sourceDir, { throwIfNoEntry: false });
+    assert.ok(sourceStat, `managed OMP skill source is missing: ${sourceDir}`);
+    assert.equal(sourceStat.isSymbolicLink(), false, `${sourceDir} must not be a symlink`);
+    assert.equal(sourceStat.isDirectory(), true, `${sourceDir} must be a directory`);
+    for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) {
+        assert.equal(entry.isSymbolicLink(), false, `${sourceDir}/${entry.name} must not be a symlink`);
+        continue;
+      }
+      const skillDir = path.join(sourceDir, entry.name);
+      const skillPath = path.join(skillDir, "SKILL.md");
+      const skillStat = fs.lstatSync(skillDir);
+      const skillFileStat = fs.lstatSync(skillPath, { throwIfNoEntry: false });
+      assert.equal(entry.isSymbolicLink(), false, `${skillDir} must not be a symlink`);
+      assert.equal(skillStat.isDirectory(), true, `${skillDir} must be a directory`);
+      assert.ok(skillFileStat, `managed OMP skill source is missing: ${skillPath}`);
+      assert.equal(skillFileStat.isSymbolicLink(), false, `${skillPath} must not be a symlink`);
+      assert.equal(skillFileStat.isFile(), true, `${skillPath} must be a regular file`);
+      assert.equal(sources.has(entry.name), false, `managed OMP skill is defined twice: ${entry.name}`);
+      sources.set(entry.name, skillDir);
+    }
+  }
+  assert.ok(sources.size > 0, "at least one managed OMP skill source is required");
+  return sources;
+}
+
+function listRelativeFiles(root, relative = "") {
+  const files = [];
+  for (const entry of fs.readdirSync(path.join(root, relative), { withFileTypes: true })) {
+    const entryRelative = path.join(relative, entry.name);
+    const entryPath = path.join(root, entryRelative);
+    assert.equal(entry.isSymbolicLink(), false, `${entryPath} must not be a symlink`);
+    if (entry.isDirectory()) {
+      files.push(...listRelativeFiles(root, entryRelative));
+    } else {
+      files.push(entryRelative);
+    }
+  }
+  return files.sort();
+}
+
+function assertSkillTreeMatches(source, destination) {
+  const sourceFiles = listRelativeFiles(source);
+  assert.deepEqual(listRelativeFiles(destination), sourceFiles);
+  for (const relative of sourceFiles) {
+    assert.deepEqual(
+      fs.readFileSync(path.join(destination, relative)),
+      fs.readFileSync(path.join(source, relative)),
+      `${destination}/${relative} must match its repository source`,
+    );
+  }
+}
+
 try {
   const sourceAgentDefinitions = new Map();
   for (const name of managedAgentNames) {
@@ -82,6 +144,10 @@ try {
     assert.equal(sourceStat.isFile(), true, `${sourcePath} must be a regular file`);
     sourceAgentDefinitions.set(name, readAgentDefinition(sourcePath, name));
   }
+
+  const sourceSkillDirectories = collectManagedSkillSources();
+  const managedSkillName = sourceSkillDirectories.keys().next().value;
+  const managedSkillDestination = path.join(skillsDir, managedSkillName);
 
   const globalInstructionSourceStat = fs.lstatSync(globalInstructionSource, {
     throwIfNoEntry: false,
@@ -146,6 +212,15 @@ try {
   ].join("\n"));
   const unmanagedAgentContent = "unmanaged user agent\n";
   writeFile(unmanagedAgentPath, unmanagedAgentContent, 0o640);
+  const unmanagedSkillContent = [
+    "---",
+    "name: user_local",
+    "description: Unmanaged user skill",
+    "---",
+    "unmanaged user skill",
+    "",
+  ].join("\n");
+  writeFile(unmanagedSkillPath, unmanagedSkillContent, 0o640);
   const existingGlobalInstructionContent = "existing global instruction\n";
   writeFile(globalInstructionPath, existingGlobalInstructionContent, 0o640);
   fs.mkdirSync(stubBin, { recursive: true });
@@ -238,6 +313,17 @@ fi
       installedDefinition.frontmatter,
       sourceAgentDefinitions.get(name).frontmatter,
     );
+  }
+  assert.equal(fs.readFileSync(unmanagedSkillPath, "utf8"), unmanagedSkillContent);
+  assert.equal(fs.lstatSync(unmanagedSkillPath).mode & 0o777, 0o640);
+  for (const [name, source] of sourceSkillDirectories) {
+    const destination = path.join(skillsDir, name);
+    const installedStat = fs.lstatSync(destination, { throwIfNoEntry: false });
+    assert.ok(installedStat, `managed OMP skill was not installed: ${name}`);
+    assert.equal(installedStat.isSymbolicLink(), false);
+    assert.equal(installedStat.isDirectory(), true);
+    assert.equal(installedStat.mode & 0o077, 0);
+    assertSkillTreeMatches(source, destination);
   }
   for (const name of ["luna_implementer", "luna_reader", "sol_high"]) {
     assert.equal(fs.existsSync(path.join(agentsDir, `${name}.md`)), false);
@@ -387,6 +473,8 @@ fi
     rollbackAgentContents.set(name, content);
     writeFile(path.join(agentsDir, `${name}.md`), content, 0o640);
   }
+  const rollbackSkillContent = `---\nname: ${managedSkillName}\ndescription: pre-failure managed skill\n---\npre-failure managed skill\n`;
+  writeFile(path.join(managedSkillDestination, "SKILL.md"), rollbackSkillContent, 0o640);
   const rollbackGlobalInstructionContent = "pre-failure global instruction\n";
   fs.unlinkSync(globalInstructionPath);
   writeFile(globalInstructionPath, rollbackGlobalInstructionContent, 0o640);
@@ -416,6 +504,11 @@ fi
     assert.equal(fs.readFileSync(restoredPath, "utf8"), rollbackAgentContents.get(name));
     assert.equal(fs.lstatSync(restoredPath).mode & 0o777, 0o640);
   }
+  assert.equal(
+    fs.readFileSync(path.join(managedSkillDestination, "SKILL.md"), "utf8"),
+    rollbackSkillContent,
+  );
+  assert.equal(fs.lstatSync(path.join(managedSkillDestination, "SKILL.md")).mode & 0o777, 0o640);
   assert.equal(fs.readFileSync(unmanagedAgentPath, "utf8"), unmanagedAgentContent);
   assert.equal(fs.lstatSync(globalInstructionPath).isSymbolicLink(), false);
   assert.equal(fs.readFileSync(globalInstructionPath, "utf8"), rollbackGlobalInstructionContent);

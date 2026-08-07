@@ -16,11 +16,13 @@ cd ~/Developer/ai-config
 ./setup-omp.sh
 ```
 
-`setup-omp.sh` requires `mise`. It installs OMP 17.1.4 when the installed runtime is older or invalid, and retains newer OMP versions. It discovers the profile path using `omp config path`, then merges the repository profile into the global configuration. Set `OMP_AGENT_DIR`, `PI_CODING_AGENT_DIR`, or `OMP_CONFIG_PATH` to select an explicit location. The installer creates private timestamped backups, writes atomically, validates the resulting roles and managed agents, and restores the previous configuration and managed agent files if validation fails.
+`setup-omp.sh` requires `mise`. It installs OMP 17.1.4 when the installed runtime is older or invalid, and retains newer OMP versions. It discovers the profile path using `omp config path`, then merges the repository profile into the global configuration. Set `OMP_AGENT_DIR`, `PI_CODING_AGENT_DIR`, or `OMP_CONFIG_PATH` to select an explicit location. The installer creates private timestamped backups, writes atomically, validates the resulting roles, managed skills, and managed agents, and restores the previous configuration and managed files if validation fails.
 
 The installer also symlinks the repository's `AGENTS.md` into the selected OMP global instruction location, `$OMP_AGENT_DIR/AGENTS.md`. It replaces a regular file only after backing it up, preserves an existing link to that repository source, replaces a dangling link left by moving the repository, and rejects a link that still resolves to another destination.
 
 The installer copies the seven repository-managed agent definitions from `omp/agents/` into `$OMP_AGENT_DIR/agents`: `accessibility_auditor`, `code_reviewer`, `database_optimizer`, `evidence_analyst`, `evidence_reader`, `security_engineer`, and `software_architect`. It replaces only those known files, rejects symlinked managed paths, and leaves unrelated user agent definitions untouched.
+
+The installer copies repository-managed skills from `.agents/skills/` and `skills/` into `$OMP_AGENT_DIR/skills`, replacing only matching skill directories and preserving unrelated user skills.
 
 Optional macOS dependencies used by OMP's repository tools:
 
@@ -160,4 +162,4 @@ Run the focused deterministic test after changing the installer or managed profi
 bun scripts/test-omp-pi-config.mjs
 ```
 
-The test validates all seven repository sources and their OMP frontmatter, installs each definition from its exact source content, preserves an unrelated user agent and unmanaged settings, checks explicit and discovered paths and file permissions, and verifies configuration plus managed-agent rollback on validation failure. It uses local stubs and does not make real model calls.
+The test validates all seven repository agent sources and their OMP frontmatter, installs every repository skill from its exact source tree, preserves unrelated user skills and unmanaged settings, checks explicit and discovered paths and file permissions, and verifies configuration plus managed skill, agent, and instruction rollback on validation failure. It uses local stubs and does not make real model calls.

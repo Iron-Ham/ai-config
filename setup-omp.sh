@@ -16,11 +16,21 @@ MANAGED_AGENT_NAMES=(
   software_architect
 )
 MANAGED_AGENT_SOURCE_DIR="$REPO_DIR/omp/agents"
+MANAGED_SKILL_SOURCE_DIRS=(
+  "$REPO_DIR/.agents/skills"
+  "$REPO_DIR/skills"
+)
 GLOBAL_INSTRUCTION_SOURCE="$REPO_DIR/AGENTS.md"
 managed_agent_backup_paths=()
 managed_agent_original_exists=()
 managed_agent_dest_paths=()
 managed_agent_temp_paths=()
+managed_skill_names=()
+managed_skill_source_paths=()
+managed_skill_backup_paths=()
+managed_skill_original_exists=()
+managed_skill_dest_paths=()
+managed_skill_temp_paths=()
 
 die() {
   echo "ERROR  $*" >&2
@@ -40,6 +50,37 @@ validate_managed_agent_sources() {
   done
 }
 
+validate_managed_skill_sources() {
+  local source_dir source name index
+  managed_skill_names=()
+  managed_skill_source_paths=()
+  for source_dir in "${MANAGED_SKILL_SOURCE_DIRS[@]}"; do
+    if [ -L "$source_dir" ] || [ ! -d "$source_dir" ]; then
+      die "managed OMP skill source directory is missing or symlinked: $source_dir"
+    fi
+    for source in "$source_dir"/*; do
+      [ -d "$source" ] || continue
+      if [ -L "$source" ]; then
+        die "managed OMP skill source is symlinked: $source"
+      fi
+      name="$(basename "$source")"
+      if [ -L "$source/SKILL.md" ] || [ ! -f "$source/SKILL.md" ]; then
+        die "managed OMP skill source is missing or symlinked: $source/SKILL.md"
+      fi
+      for index in "${!managed_skill_names[@]}"; do
+        if [ "${managed_skill_names[$index]}" = "$name" ]; then
+          die "managed OMP skill name is defined more than once: $name"
+        fi
+      done
+      managed_skill_names+=("$name")
+      managed_skill_source_paths+=("$source")
+    done
+  done
+  if [ "${#managed_skill_names[@]}" -eq 0 ]; then
+    die "no managed OMP skill sources were found"
+  fi
+}
+
 validate_global_instruction_source() {
   if [ -L "$GLOBAL_INSTRUCTION_SOURCE" ] || [ ! -f "$GLOBAL_INSTRUCTION_SOURCE" ]; then
     die "global OMP instruction source is missing or symlinked: $GLOBAL_INSTRUCTION_SOURCE"
@@ -47,7 +88,9 @@ validate_global_instruction_source() {
 }
 
 validate_managed_agent_sources
+validate_managed_skill_sources
 validate_global_instruction_source
+
 MISE_BIN="${OMP_MISE_BIN:-$(type -P mise || true)}"
 omp_agent_dir_explicit=false
 if [ -n "${OMP_AGENT_DIR+x}" ] || [ -n "${PI_CODING_AGENT_DIR+x}" ]; then
@@ -212,6 +255,18 @@ if [ ! -d "$agents_dir" ]; then
   mkdir -m 700 "$agents_dir"
 fi
 
+skills_dir="$OMP_AGENT_DIR/skills"
+if [ -L "$skills_dir" ]; then
+  die "refusing to use symlinked OMP skills directory: $skills_dir"
+fi
+if [ -e "$skills_dir" ] && [ ! -d "$skills_dir" ]; then
+  die "OMP skills path is not a directory: $skills_dir"
+fi
+if [ ! -d "$skills_dir" ]; then
+  mkdir -m 700 "$skills_dir"
+fi
+
+
 global_instruction_dest_path="$OMP_AGENT_DIR/AGENTS.md"
 if [ "$GLOBAL_INSTRUCTION_SOURCE" = "$global_instruction_dest_path" ]; then
   die "global OMP instruction destination overlaps its repository source: $global_instruction_dest_path"
@@ -233,6 +288,17 @@ next_agent_backup_path() {
   local suffix=1
   while [ -e "$backup" ] || [ -L "$backup" ]; do
     backup="$backup_dir/agents-$name.md.bak.$(date +%Y%m%d%H%M%S).$suffix"
+    suffix=$((suffix + 1))
+  done
+  printf '%s\n' "$backup"
+}
+
+next_skill_backup_path() {
+  local name="$1"
+  local backup="$backup_dir/skills-$name.bak.$(date +%Y%m%d%H%M%S)"
+  local suffix=1
+  while [ -e "$backup" ] || [ -L "$backup" ]; do
+    backup="$backup_dir/skills-$name.bak.$(date +%Y%m%d%H%M%S).$suffix"
     suffix=$((suffix + 1))
   done
   printf '%s\n' "$backup"
@@ -277,6 +343,38 @@ prepare_managed_agents() {
   done
 }
 
+prepare_managed_skills() {
+  local index name destination backup source_dir
+  for index in "${!managed_skill_names[@]}"; do
+    name="${managed_skill_names[$index]}"
+    destination="$skills_dir/$name"
+    for source_dir in "${MANAGED_SKILL_SOURCE_DIRS[@]}"; do
+      case "$destination/" in
+        "$source_dir/"*)
+          die "managed OMP skill destination overlaps its repository source: $destination"
+          ;;
+      esac
+    done
+    if [ -L "$destination" ]; then
+      die "refusing to replace symlinked managed OMP skill: $destination"
+    fi
+    if [ -e "$destination" ] && [ ! -d "$destination" ]; then
+      die "managed OMP skill destination is not a directory: $destination"
+    fi
+    managed_skill_temp_paths[$index]=""
+    if [ -e "$destination" ]; then
+      backup="$(next_skill_backup_path "$name")"
+      cp -pR "$destination" "$backup"
+      managed_skill_backup_paths[$index]="$backup"
+      managed_skill_original_exists[$index]=true
+    else
+      managed_skill_backup_paths[$index]=""
+      managed_skill_original_exists[$index]=false
+    fi
+    managed_skill_dest_paths[$index]="$destination"
+  done
+}
+
 install_managed_agents() {
   local index name source destination temporary
   for index in "${!MANAGED_AGENT_NAMES[@]}"; do
@@ -295,6 +393,25 @@ install_managed_agents() {
   done
 }
 
+install_managed_skills() {
+  local index name source destination temporary
+  for index in "${!managed_skill_names[@]}"; do
+    name="${managed_skill_names[$index]}"
+    source="${managed_skill_source_paths[$index]}"
+    destination="${managed_skill_dest_paths[$index]}"
+    temporary="$skills_dir/.$name.tmp.$$.$index"
+    if [ -e "$temporary" ] || [ -L "$temporary" ]; then
+      die "temporary managed OMP skill path already exists: $temporary"
+    fi
+    cp -R "$source" "$temporary"
+    chmod -R u+rwX,go-rwx "$temporary"
+    rm -rf "$destination"
+    mv "$temporary" "$destination"
+    managed_skill_temp_paths[$index]=""
+  done
+}
+
+
 validate_installed_agents() {
   local index name source destination
   for index in "${!MANAGED_AGENT_NAMES[@]}"; do
@@ -303,6 +420,21 @@ validate_installed_agents() {
     destination="${managed_agent_dest_paths[$index]}"
     if [ -L "$destination" ] || [ ! -f "$destination" ] || ! cmp -s "$source" "$destination"; then
       die "installed managed OMP agent does not match its repository source: $destination"
+    fi
+  done
+}
+
+validate_installed_skills() {
+  local index name source destination
+  for index in "${!managed_skill_names[@]}"; do
+    name="${managed_skill_names[$index]}"
+    source="${managed_skill_source_paths[$index]}"
+    destination="${managed_skill_dest_paths[$index]}"
+    if [ -L "$destination" ] || [ ! -d "$destination" ] || [ ! -f "$destination/SKILL.md" ]; then
+      die "installed managed OMP skill does not match its repository source: $destination"
+    fi
+    if ! diff -qr "$source" "$destination" >/dev/null 2>&1; then
+      die "installed managed OMP skill does not match its repository source: $destination"
     fi
   done
 }
@@ -372,6 +504,15 @@ cleanup_agent_temporary_files() {
   done
 }
 
+cleanup_skill_temporary_files() {
+  local temporary
+  for temporary in "${managed_skill_temp_paths[@]}"; do
+    if [ -n "$temporary" ]; then
+      rm -rf "$temporary"
+    fi
+  done
+}
+
 restore_managed_agents() {
   local index destination
   cleanup_agent_temporary_files
@@ -381,6 +522,19 @@ restore_managed_agents() {
     rm -f "$destination"
     if [ "${managed_agent_original_exists[$index]:-false}" = true ]; then
       cp -p "${managed_agent_backup_paths[$index]}" "$destination"
+    fi
+  done
+}
+
+restore_managed_skills() {
+  local index destination
+  cleanup_skill_temporary_files
+  for index in "${!managed_skill_names[@]}"; do
+    destination="${managed_skill_dest_paths[$index]:-}"
+    [ -n "$destination" ] || continue
+    rm -rf "$destination"
+    if [ "${managed_skill_original_exists[$index]:-false}" = true ]; then
+      cp -pR "${managed_skill_backup_paths[$index]}" "$destination"
     fi
   done
 }
@@ -404,6 +558,7 @@ restore_on_failure() {
   trap - EXIT
   set +e
   if [ "$transaction_failed" = true ]; then
+    restore_managed_skills || rollback_status=1
     restore_managed_agents || rollback_status=1
     restore_global_instructions || rollback_status=1
     if [ "$original_exists" = true ]; then
@@ -413,12 +568,13 @@ restore_on_failure() {
       rm -f "$CONFIG_PATH" || rollback_status=1
     fi
     if [ "$rollback_status" -eq 0 ]; then
-      echo "ROLLBACK OMP setup failed; previous configuration and managed agents restored" >&2
+      echo "ROLLBACK OMP setup failed; previous configuration, managed skills, and managed agents restored" >&2
     else
       echo "ERROR  OMP setup rollback could not restore every managed file" >&2
     fi
   else
     cleanup_agent_temporary_files
+    cleanup_skill_temporary_files
     cleanup_global_instruction_temporary_file
   fi
   if [ "$rollback_status" -ne 0 ]; then
@@ -427,9 +583,10 @@ restore_on_failure() {
   exit "$status"
 }
 trap restore_on_failure EXIT
-
+prepare_managed_skills
 prepare_managed_agents
 prepare_global_instructions
+install_managed_skills
 install_managed_agents
 install_global_instructions
 
@@ -437,11 +594,11 @@ run_bun "$REPO_DIR/scripts/merge-omp-config.mjs" \
   "$REPO_DIR/omp/omp.defaults.yml" \
   "$CONFIG_PATH"
 
+validate_installed_skills
 validate_installed_agents
-validate_global_instructions
 PI_CODING_AGENT_DIR="$config_dir" run_omp config get modelRoles >/dev/null
 
 transaction_failed=false
 echo "OK     OMP profile installed at $CONFIG_PATH"
-echo "       Managed OMP agents were installed and global instructions linked; unrelated settings were preserved."
+echo "       Managed OMP skills, agents, and global instructions were installed; unrelated settings were preserved."
 echo "       No credentials were read or written."
