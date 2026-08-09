@@ -161,7 +161,7 @@ try {
   );
   assert.equal(profile.modelRoleStorage, "global");
   assert.deepEqual(profile.modelRoles, {
-    default: "openai/gpt-5.6-terra:xhigh",
+    default: "openai/gpt-5.6-luna:max",
     plan: "openai/gpt-5.6-terra:xhigh",
     smol: "openai/gpt-5.6-luna:high",
     slow: "openai/gpt-5.6-sol:high",
@@ -172,7 +172,9 @@ try {
   });
   assert.equal(profile.hideThinkingBlock, true);
   assert.deepEqual(profile.advisor, { enabled: false });
-  assert.equal(profile.task, undefined);
+  assert.deepEqual(profile.task, {
+    agentModelOverrides: { task: "openai/gpt-5.6-luna:max" },
+  });
   assert.equal(profile.glob, undefined);
   assert.equal(profile.grep, undefined);
   assert.deepEqual(profile.astGrep, { enabled: true });
@@ -277,7 +279,9 @@ fi
   assert.equal(installed.modelRoles.commit, "baseten/moonshotai/Kimi-K2.7-Code");
   assert.equal(installed.modelRoles.smol, "openai/gpt-5.6-luna:high");
   assert.equal(installed.modelRoles.task, "openai/gpt-5.6-terra:high");
-  assert.equal(installed.task, undefined);
+  assert.deepEqual(installed.task, {
+    agentModelOverrides: { task: "openai/gpt-5.6-luna:max" },
+  });
   assert.equal(installed.advisor.enabled, false);
   assert.equal(installed.hideThinkingBlock, true);
   assert.equal(installed.unmanaged.apiKey, "do-not-log-or-replace");
@@ -428,6 +432,7 @@ fi
   assert.equal(preservedTask.exitCode, 0, preservedTask.stderr.toString());
   const preservedCustomConfig = Bun.YAML.parse(fs.readFileSync(customTaskConfig, "utf8"));
   assert.deepEqual(preservedCustomConfig.task.agentModelOverrides, {
+    task: "openai/gpt-5.6-luna:max",
     user_local: "openai/gpt-5.6-sol:high",
   });
   assert.equal(preservedCustomConfig.glob.enabled, false);
@@ -461,7 +466,7 @@ fi
   assert.equal(fallback.exitCode, 0, fallback.stderr.toString());
   const fallbackInstalled = Bun.YAML.parse(fs.readFileSync(fallbackConfig, "utf8"));
   assert.equal(fallbackInstalled.unmanaged.keep, true);
-  assert.equal(fallbackInstalled.modelRoles.default, "openai/gpt-5.6-terra:xhigh");
+  assert.equal(fallbackInstalled.modelRoles.default, "openai/gpt-5.6-luna:max");
   assert.equal(fallbackInstalled.hideThinkingBlock, true);
   const fallbackGlobalInstructionPath = path.join(fallbackRoot, "AGENTS.md");
   assert.equal(fs.lstatSync(fallbackGlobalInstructionPath).isSymbolicLink(), true);
