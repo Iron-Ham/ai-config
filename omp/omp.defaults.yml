@@ -2,17 +2,27 @@
 # Model role and subagent override values use OMP's provider/model:thinking syntax.
 modelRoleStorage: global
 modelRoles:
-  default: openai/gpt-5.6-luna:max
-  plan: openai/gpt-5.6-luna:max
-  smol: openai/gpt-5.6-luna:high
-  slow: openai/gpt-5.6-sol:high
-  tiny: openai/gpt-5.6-luna:medium
-  task: openai/gpt-5.6-luna:max
-  commit: openai/gpt-5.6-luna:low
-  advisor: openai/gpt-5.6-sol:high
+  default: openai-codex/gpt-5.6-luna:max
+  plan: openai-codex/gpt-5.6-luna:max
+  smol: openai-codex/gpt-5.6-luna:high
+  slow: openai-codex/gpt-5.6-sol:high
+  tiny: openai-codex/gpt-5.6-luna:medium
+  task: openai-codex/gpt-5.6-luna:max
+  commit: openai-codex/gpt-5.6-luna:low
+  advisor: openai-codex/gpt-5.6-sol:high
+retry:
+  # Roles target the enterprise ChatGPT (`openai-codex`) provider, authenticated
+  # via `/login`. If a config points at the API-key `openai` provider instead
+  # (or vice versa), swap providers while keeping the model id so whichever
+  # credential the user actually has still resolves.
+  fallbackChains:
+    openai-codex/*:
+      - openai/*
+    openai/*:
+      - openai-codex/*
 task:
   agentModelOverrides:
-    task: openai/gpt-5.6-luna:max
+    task: openai-codex/gpt-5.6-luna:max
 hideThinkingBlock: true
 advisor:
   enabled: false
