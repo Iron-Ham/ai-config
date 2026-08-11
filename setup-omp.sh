@@ -21,6 +21,8 @@ MANAGED_SKILL_SOURCE_DIRS=(
   "$REPO_DIR/skills"
 )
 GLOBAL_INSTRUCTION_SOURCE="$REPO_DIR/AGENTS.md"
+MANAGED_MODEL_SOURCE_PATH="$REPO_DIR/omp/models.yml"
+
 managed_agent_backup_paths=()
 managed_agent_original_exists=()
 managed_agent_dest_paths=()
@@ -31,6 +33,7 @@ managed_skill_backup_paths=()
 managed_skill_original_exists=()
 managed_skill_dest_paths=()
 managed_skill_temp_paths=()
+
 
 die() {
   echo "ERROR  $*" >&2
@@ -86,10 +89,18 @@ validate_global_instruction_source() {
     die "global OMP instruction source is missing or symlinked: $GLOBAL_INSTRUCTION_SOURCE"
   fi
 }
+validate_model_source() {
+  if [ -L "$MANAGED_MODEL_SOURCE_PATH" ] || [ ! -f "$MANAGED_MODEL_SOURCE_PATH" ]; then
+    die "managed OMP model source is missing or symlinked: $MANAGED_MODEL_SOURCE_PATH"
+  fi
+}
+
 
 validate_managed_agent_sources
 validate_managed_skill_sources
 validate_global_instruction_source
+validate_model_source
+
 
 MISE_BIN="${OMP_MISE_BIN:-$(type -P mise || true)}"
 omp_agent_dir_explicit=false
@@ -108,6 +119,11 @@ global_instruction_original_link_target=""
 global_instruction_dest_path=""
 global_instruction_temp_path=""
 global_instruction_installed=false
+model_config_path=""
+model_config_backup_path=""
+model_config_original_exists=false
+model_config_changed=false
+
 
 if [ ! -x "$MISE_BIN" ]; then
   echo "ERROR  mise is required for OMP setup" >&2
@@ -222,6 +238,17 @@ fi
 if [ -e "$OMP_AGENT_DIR" ] && [ ! -d "$OMP_AGENT_DIR" ]; then
   die "OMP agent directory is not a directory: $OMP_AGENT_DIR"
 fi
+model_config_path="$OMP_AGENT_DIR/models.yml"
+if [ "$MANAGED_MODEL_SOURCE_PATH" = "$model_config_path" ]; then
+  die "managed OMP model destination overlaps its repository source: $model_config_path"
+fi
+if [ -L "$model_config_path" ]; then
+  die "refusing to replace symlinked OMP model config: $model_config_path"
+fi
+if [ -e "$model_config_path" ] && [ ! -f "$model_config_path" ]; then
+  die "OMP model config path is not a regular file: $model_config_path"
+fi
+
 
 config_dir="$(dirname "$CONFIG_PATH")"
 if [ -L "$config_dir" ] || { [ -e "$config_dir" ] && [ ! -d "$config_dir" ]; }; then
@@ -281,6 +308,16 @@ if [ -e "$CONFIG_PATH" ]; then
   cp -p "$CONFIG_PATH" "$backup_path"
   chmod 600 "$backup_path"
 fi
+if [ -e "$model_config_path" ]; then
+  model_config_original_exists=true
+  model_config_backup_path="$backup_dir/models.yml.bak.$(date +%Y%m%d%H%M%S)"
+  while [ -e "$model_config_backup_path" ] || [ -L "$model_config_backup_path" ]; do
+    model_config_backup_path="$backup_dir/models.yml.bak.$(date +%Y%m%d%H%M%S).$RANDOM"
+  done
+  cp -p "$model_config_path" "$model_config_backup_path"
+  chmod 600 "$model_config_backup_path"
+fi
+
 
 next_agent_backup_path() {
   local name="$1"
@@ -551,6 +588,18 @@ restore_global_instructions() {
     cp -p "$global_instruction_backup_path" "$global_instruction_dest_path"
   fi
 }
+restore_model_config() {
+  if [ "$model_config_changed" = false ]; then
+    return
+  fi
+  if [ "$model_config_original_exists" = true ]; then
+    cp -p "$model_config_backup_path" "$model_config_path"
+    chmod 600 "$model_config_path"
+  else
+    rm -f "$model_config_path"
+  fi
+}
+
 
 restore_on_failure() {
   local status="$?"
@@ -561,6 +610,8 @@ restore_on_failure() {
     restore_managed_skills || rollback_status=1
     restore_managed_agents || rollback_status=1
     restore_global_instructions || rollback_status=1
+    restore_model_config || rollback_status=1
+
     if [ "$original_exists" = true ]; then
       cp -p "$backup_path" "$CONFIG_PATH" || rollback_status=1
       chmod 600 "$CONFIG_PATH" || rollback_status=1
@@ -568,11 +619,10 @@ restore_on_failure() {
       rm -f "$CONFIG_PATH" || rollback_status=1
     fi
     if [ "$rollback_status" -eq 0 ]; then
-      echo "ROLLBACK OMP setup failed; previous configuration, managed skills, and managed agents restored" >&2
+      echo "ROLLBACK OMP setup failed; previous configuration, managed OMP models, skills, agents, and global instructions restored" >&2
     else
       echo "ERROR  OMP setup rollback could not restore every managed file" >&2
     fi
-  else
     cleanup_agent_temporary_files
     cleanup_skill_temporary_files
     cleanup_global_instruction_temporary_file
@@ -593,6 +643,11 @@ install_global_instructions
 run_bun "$REPO_DIR/scripts/merge-omp-config.mjs" \
   "$REPO_DIR/omp/omp.defaults.yml" \
   "$CONFIG_PATH"
+run_bun "$REPO_DIR/scripts/merge-omp-models.mjs" \
+  "$MANAGED_MODEL_SOURCE_PATH" \
+  "$model_config_path"
+model_config_changed=true
+
 
 validate_installed_skills
 validate_installed_agents
@@ -600,5 +655,5 @@ PI_CODING_AGENT_DIR="$config_dir" run_omp config get modelRoles >/dev/null
 
 transaction_failed=false
 echo "OK     OMP profile installed at $CONFIG_PATH"
-echo "       Managed OMP skills, agents, and global instructions were installed; unrelated settings were preserved."
+echo "       Managed OMP models, skills, agents, and global instructions were installed; unrelated settings were preserved."
 echo "       No credentials were read or written."
