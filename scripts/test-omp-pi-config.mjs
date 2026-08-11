@@ -161,19 +161,25 @@ try {
   );
   assert.equal(profile.modelRoleStorage, "global");
   assert.deepEqual(profile.modelRoles, {
-    default: "openai/gpt-5.6-luna:max",
-    plan: "openai/gpt-5.6-luna:max",
-    smol: "openai/gpt-5.6-luna:high",
-    slow: "openai/gpt-5.6-sol:high",
-    tiny: "openai/gpt-5.6-luna:medium",
-    task: "openai/gpt-5.6-luna:max",
-    commit: "openai/gpt-5.6-luna:low",
-    advisor: "openai/gpt-5.6-sol:high",
+    default: "openai-codex/gpt-5.6-luna:max",
+    plan: "openai-codex/gpt-5.6-luna:max",
+    smol: "openai-codex/gpt-5.6-luna:high",
+    slow: "openai-codex/gpt-5.6-sol:high",
+    tiny: "openai-codex/gpt-5.6-luna:medium",
+    task: "openai-codex/gpt-5.6-luna:max",
+    commit: "openai-codex/gpt-5.6-luna:low",
+    advisor: "openai-codex/gpt-5.6-sol:high",
+  });
+  assert.deepEqual(profile.retry, {
+    fallbackChains: {
+      "openai-codex/*": ["openai/*"],
+      "openai/*": ["openai-codex/*"],
+    },
   });
   assert.equal(profile.hideThinkingBlock, true);
   assert.deepEqual(profile.advisor, { enabled: false });
   assert.deepEqual(profile.task, {
-    agentModelOverrides: { task: "openai/gpt-5.6-luna:max" },
+    agentModelOverrides: { task: "openai-codex/gpt-5.6-luna:max" },
   });
   assert.equal(profile.glob, undefined);
   assert.equal(profile.grep, undefined);
@@ -275,12 +281,18 @@ fi
 
   const installed = Bun.YAML.parse(fs.readFileSync(configPath, "utf8"));
   assert.equal(installed.modelRoles.default, "fireworks/kimi-k3");
-  assert.equal(installed.modelRoles.advisor, "openai/gpt-5.6-sol:high");
-  assert.equal(installed.modelRoles.commit, "openai/gpt-5.6-luna:low");
-  assert.equal(installed.modelRoles.smol, "openai/gpt-5.6-luna:high");
-  assert.equal(installed.modelRoles.task, "openai/gpt-5.6-luna:max");
+  assert.equal(installed.modelRoles.advisor, "openai-codex/gpt-5.6-sol:high");
+  assert.equal(installed.modelRoles.commit, "openai-codex/gpt-5.6-luna:low");
+  assert.equal(installed.modelRoles.smol, "openai-codex/gpt-5.6-luna:high");
+  assert.equal(installed.modelRoles.task, "openai-codex/gpt-5.6-luna:max");
   assert.deepEqual(installed.task, {
-    agentModelOverrides: { task: "openai/gpt-5.6-luna:max" },
+    agentModelOverrides: { task: "openai-codex/gpt-5.6-luna:max" },
+  });
+  assert.deepEqual(installed.retry, {
+    fallbackChains: {
+      "openai-codex/*": ["openai/*"],
+      "openai/*": ["openai-codex/*"],
+    },
   });
   assert.equal(installed.advisor.enabled, false);
   assert.equal(installed.hideThinkingBlock, true);
@@ -432,7 +444,7 @@ fi
   assert.equal(preservedTask.exitCode, 0, preservedTask.stderr.toString());
   const preservedCustomConfig = Bun.YAML.parse(fs.readFileSync(customTaskConfig, "utf8"));
   assert.deepEqual(preservedCustomConfig.task.agentModelOverrides, {
-    task: "openai/gpt-5.6-luna:max",
+    task: "openai-codex/gpt-5.6-luna:max",
     user_local: "openai/gpt-5.6-sol:high",
   });
   assert.equal(preservedCustomConfig.glob.enabled, false);
@@ -466,7 +478,7 @@ fi
   assert.equal(fallback.exitCode, 0, fallback.stderr.toString());
   const fallbackInstalled = Bun.YAML.parse(fs.readFileSync(fallbackConfig, "utf8"));
   assert.equal(fallbackInstalled.unmanaged.keep, true);
-  assert.equal(fallbackInstalled.modelRoles.default, "openai/gpt-5.6-luna:max");
+  assert.equal(fallbackInstalled.modelRoles.default, "openai-codex/gpt-5.6-luna:max");
   assert.equal(fallbackInstalled.hideThinkingBlock, true);
   const fallbackGlobalInstructionPath = path.join(fallbackRoot, "AGENTS.md");
   assert.equal(fs.lstatSync(fallbackGlobalInstructionPath).isSymbolicLink(), true);

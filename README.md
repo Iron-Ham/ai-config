@@ -34,7 +34,7 @@ brew install ripgrep ast-grep
 
 `omp/omp.defaults.yml` is the source of truth for managed global defaults. On first install it supplies the model roles (`default`, `plan`, `smol`, `slow`, `tiny`, `commit`, and `advisor`), pins the generic `task` subagent to Luna Max, disables automatic advisor use by default, enables the AST-grep integration, hides thinking blocks, and enables OMP's `xdev` tools with built-in documentation. The seven managed read-only agent definitions are sourced from `omp/agents/` and installed under the selected OMP agent directory. They contain no credentials; the merge keeps unrelated user configuration, custom task settings, unmanaged agent definitions, and the `default` model selected with `/model`.
 
-Install these dispatchers in `~/.zshrc`, then start a new shell with `exec zsh`. Use `omp` rather than `pi`, `notion local pi`, or the `omp` binary directly: `omp` forces the local Notion runtime while using the global OMP profile installed by `setup-omp.sh`. That profile retains Luna Max for the generic `task` subagent.
+Install these dispatchers in `~/.zshrc`, then start a new shell with `exec zsh`. Use `omp` rather than `pi`, `notion local pi`, or the `omp` binary directly: `omp` invokes the local Notion runtime while using the global OMP profile installed by `setup-omp.sh`. That profile retains Luna Max for the generic `task` subagent.
 
 ```zsh
 _run_notion_local_or_command() {
@@ -73,12 +73,11 @@ pi() {
 }
 
 omp() {
-  local OMP_LOCAL_PI=true
-  pi "$@"
+  _run_notion_local_or_command pi "$@"
 }
 ```
 
-`omp` invokes the existing `pi()` function with a function-local `OMP_LOCAL_PI=true`, so `pi` uses `notion local pi` while retaining the original working directory and every argument boundary. `setup-omp.sh` installs the repository profile into OMP's global configuration; it seeds `modelRoles.default` only when absent.
+`omp` calls `notion local pi` directly through `_run_notion_local_or_command`, preserving the original working directory and every argument boundary. It does not inject `--yolo`, so OMP subcommands such as `token` remain available and its launch behavior matches `notion local pi`. `setup-omp.sh` installs the repository profile into OMP's global configuration; it seeds `modelRoles.default` only when absent.
 
 `/model` changes the global `default` role and remains effective in new OMP sessions and after rerunning `setup-omp.sh`. `task`, `plan`, `smol`, `slow`, `tiny`, `commit`, and `advisor` remain independent role assignments; the managed generic `task` subagent override remains on Luna Max. Start a new OMP session after changing a model; existing sessions retain the role map loaded at startup.
 
