@@ -33,6 +33,7 @@ brew install ripgrep ast-grep
 ## Managed profile
 
 `omp/omp.defaults.yml` is the source of truth for managed global defaults. On first install it supplies the model roles (`default`, `plan`, `smol`, `slow`, `tiny`, `commit`, and `advisor`), pins the generic `task` subagent to Luna Max, disables automatic advisor use by default, enables the AST-grep integration, hides thinking blocks, and enables OMP's `xdev` tools with built-in documentation. The seven managed read-only agent definitions are sourced from `omp/agents/` and installed under the selected OMP agent directory. They contain no credentials; the merge keeps unrelated user configuration, custom task settings, unmanaged agent definitions, and the `default` model selected with `/model`.
+`omp/models.yml` is the source of truth for managed model metadata overrides. The installer merges its per-model context settings into `$OMP_AGENT_DIR/models.yml`, setting Luna to 1,000,000 tokens and preserving unrelated provider and model settings.
 
 Install these dispatchers in `~/.zshrc`, then start a new shell with `exec zsh`. Use `omp` rather than `pi`, `notion local pi`, or the `omp` binary directly: `omp` invokes the local Notion runtime while using the global OMP profile installed by `setup-omp.sh`. That profile retains Luna Max for the generic `task` subagent.
 

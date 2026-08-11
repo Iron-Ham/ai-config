@@ -65,6 +65,8 @@ const agentsDir = path.join(configDir, "agents");
 const skillsDir = path.join(configDir, "skills");
 const unmanagedSkillPath = path.join(skillsDir, "user_local", "SKILL.md");
 const configPath = path.join(configDir, "config.yml");
+const modelsConfigPath = path.join(configDir, "models.yml");
+
 const unmanagedAgentPath = path.join(agentsDir, "user_local.md");
 const globalInstructionPath = path.join(configDir, "AGENTS.md");
 const globalInstructionSource = path.join(repoRoot, "AGENTS.md");
@@ -185,6 +187,22 @@ try {
   assert.equal(profile.grep, undefined);
   assert.deepEqual(profile.astGrep, { enabled: true });
   assert.deepEqual(profile.tools, { xdev: true, xdevDocs: "builtins" });
+  const modelProfile = Bun.YAML.parse(
+    fs.readFileSync(path.join(repoRoot, "omp", "models.yml"), "utf8"),
+  );
+  assert.deepEqual(modelProfile, {
+    providers: {
+      "openai-codex": {
+        modelOverrides: {
+          "gpt-5.6-luna": { contextWindow: 1000000 },
+          "gpt-5.6-sol": { contextWindow: 400000 },
+          "gpt-5.6-terra": { contextWindow: 400000 },
+        },
+      },
+    },
+  });
+
+
   assert.doesNotMatch(JSON.stringify(profile), /api[_-]?key|token|secret|password/i);
 
   const readme = fs.readFileSync(path.join(repoRoot, "README.md"), "utf8");
@@ -304,6 +322,10 @@ fi
   assert.equal(installed.tools.xdev, true);
   assert.equal(installed.tools.discoveryMode, undefined);
   assert.equal(fs.statSync(configPath).mode & 0o077, 0);
+  const installedModels = Bun.YAML.parse(fs.readFileSync(modelsConfigPath, "utf8"));
+  assert.deepEqual(installedModels, modelProfile);
+  assert.equal(fs.statSync(modelsConfigPath).mode & 0o077, 0);
+
   assert.equal(fs.readFileSync(unmanagedAgentPath, "utf8"), unmanagedAgentContent);
   assert.equal(fs.lstatSync(unmanagedAgentPath).mode & 0o777, 0o640);
   const globalInstructionStat = fs.lstatSync(globalInstructionPath, {
@@ -450,6 +472,49 @@ fi
   assert.equal(preservedCustomConfig.glob.enabled, false);
   assert.equal(preservedCustomConfig.task.maxConcurrency, 4);
   assert.equal(preservedCustomConfig.task.maxRecursionDepth, 3);
+  const customModelsConfig = path.join(testRoot, "custom-models", "models.yml");
+  writeFile(customModelsConfig, [
+    "providers:",
+    "  openai-codex:",
+    "    headers:",
+    "      X-Preserved: true",
+    "    modelOverrides:",
+    "      gpt-5.6-luna:",
+    "        contextWindow: 272000",
+    "        name: preserved",
+    "      gpt-5.6-sol:",
+    "        contextWindow: 272000",
+    "        name: preserved",
+    "  unrelated:",
+    "    modelOverrides:",
+    "      model:",
+    "        contextWindow: 123000",
+    "",
+  ].join("\n"));
+  const preservedModels = Bun.spawnSync([
+    process.execPath,
+    path.join(repoRoot, "scripts", "merge-omp-models.mjs"),
+    path.join(repoRoot, "omp", "models.yml"),
+    customModelsConfig,
+  ]);
+  assert.equal(preservedModels.exitCode, 0, preservedModels.stderr.toString());
+  const mergedModels = Bun.YAML.parse(fs.readFileSync(customModelsConfig, "utf8"));
+  assert.deepEqual(mergedModels.providers["openai-codex"].headers, { "X-Preserved": true });
+  assert.deepEqual(mergedModels.providers["openai-codex"].modelOverrides["gpt-5.6-luna"], {
+    contextWindow: 1000000,
+    name: "preserved",
+  });
+  assert.deepEqual(mergedModels.providers["openai-codex"].modelOverrides["gpt-5.6-sol"], {
+    contextWindow: 400000,
+    name: "preserved",
+  });
+  assert.deepEqual(mergedModels.providers["openai-codex"].modelOverrides["gpt-5.6-terra"], {
+    contextWindow: 400000,
+  });
+  assert.deepEqual(mergedModels.providers.unrelated, {
+    modelOverrides: { model: { contextWindow: 123000 } },
+  });
+
 
   const fallbackRoot = path.join(testRoot, "fallback");
   const fallbackConfig = path.join(fallbackRoot, "config.yml");
@@ -478,6 +543,11 @@ fi
   assert.equal(fallback.exitCode, 0, fallback.stderr.toString());
   const fallbackInstalled = Bun.YAML.parse(fs.readFileSync(fallbackConfig, "utf8"));
   assert.equal(fallbackInstalled.unmanaged.keep, true);
+  const fallbackModels = Bun.YAML.parse(
+    fs.readFileSync(path.join(fallbackRoot, "models.yml"), "utf8"),
+  );
+  assert.deepEqual(fallbackModels, modelProfile);
+
   assert.equal(fallbackInstalled.modelRoles.default, "openai-codex/gpt-5.6-luna:max");
   assert.equal(fallbackInstalled.hideThinkingBlock, true);
   const fallbackGlobalInstructionPath = path.join(fallbackRoot, "AGENTS.md");
@@ -497,6 +567,20 @@ fi
   writeFile(globalInstructionPath, rollbackGlobalInstructionContent, 0o640);
   const rollbackConfig = "unmanaged:\n  preserved: before-failure\n";
   writeFile(configPath, rollbackConfig);
+  const rollbackModelsConfig = [
+    "providers:",
+    "  openai-codex:",
+    "    modelOverrides:",
+    "      gpt-5.6-luna:",
+    "        contextWindow: 272000",
+    "        name: preserved",
+    "      gpt-5.6-sol:",
+    "        contextWindow: 272000",
+    "        name: preserved",
+    "",
+  ].join("\n");
+  writeFile(modelsConfigPath, rollbackModelsConfig);
+
   const failedUpdate = Bun.spawnSync(["bash", path.join(repoRoot, "setup-omp.sh")], {
     cwd: repoRoot,
     env: {
@@ -516,6 +600,8 @@ fi
   assert.notEqual(failedUpdate.exitCode, 0);
   assert.equal(fs.readFileSync(configPath, "utf8"), rollbackConfig);
   assert.match(failedUpdate.stderr.toString(), /ROLLBACK OMP setup failed/);
+  assert.equal(fs.readFileSync(modelsConfigPath, "utf8"), rollbackModelsConfig);
+
   for (const name of managedAgentNames) {
     const restoredPath = path.join(agentsDir, `${name}.md`);
     assert.equal(fs.readFileSync(restoredPath, "utf8"), rollbackAgentContents.get(name));
