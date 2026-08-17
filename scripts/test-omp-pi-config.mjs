@@ -164,9 +164,9 @@ try {
   assert.equal(profile.modelRoleStorage, "global");
   assert.deepEqual(profile.modelRoles, {
     default: "openai-codex/gpt-5.6-luna:max",
-    plan: "openai-codex/gpt-5.6-luna:max",
+    plan: "openai-codex/gpt-5.6-terra:xhigh",
     smol: "openai-codex/gpt-5.6-luna:high",
-    slow: "openai-codex/gpt-5.6-sol:high",
+    slow: "openai-codex/gpt-5.6-terra:xhigh",
     tiny: "openai-codex/gpt-5.6-luna:medium",
     task: "openai-codex/gpt-5.6-luna:max",
     commit: "openai-codex/gpt-5.6-luna:low",
@@ -299,6 +299,8 @@ fi
 
   const installed = Bun.YAML.parse(fs.readFileSync(configPath, "utf8"));
   assert.equal(installed.modelRoles.default, "fireworks/kimi-k3");
+  assert.equal(installed.modelRoles.plan, "openai-codex/gpt-5.6-terra:xhigh");
+  assert.equal(installed.modelRoles.slow, "openai-codex/gpt-5.6-terra:xhigh");
   assert.equal(installed.modelRoles.advisor, "openai-codex/gpt-5.6-sol:high");
   assert.equal(installed.modelRoles.commit, "openai-codex/gpt-5.6-luna:low");
   assert.equal(installed.modelRoles.smol, "openai-codex/gpt-5.6-luna:high");
