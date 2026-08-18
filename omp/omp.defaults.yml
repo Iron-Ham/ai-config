@@ -10,16 +10,6 @@ modelRoles:
   task: openai-codex/gpt-5.6-luna:max
   commit: openai-codex/gpt-5.6-luna:low
   advisor: openai-codex/gpt-5.6-sol:high
-retry:
-  # Roles target the enterprise ChatGPT (`openai-codex`) provider, authenticated
-  # via `/login`. If a config points at the API-key `openai` provider instead
-  # (or vice versa), swap providers while keeping the model id so whichever
-  # credential the user actually has still resolves.
-  fallbackChains:
-    openai-codex/*:
-      - openai/*
-    openai/*:
-      - openai-codex/*
 task:
   agentModelOverrides:
     task: openai-codex/gpt-5.6-luna:max

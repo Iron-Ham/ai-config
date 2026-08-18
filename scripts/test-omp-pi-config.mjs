@@ -172,12 +172,7 @@ try {
     commit: "openai-codex/gpt-5.6-luna:low",
     advisor: "openai-codex/gpt-5.6-sol:high",
   });
-  assert.deepEqual(profile.retry, {
-    fallbackChains: {
-      "openai-codex/*": ["openai/*"],
-      "openai/*": ["openai-codex/*"],
-    },
-  });
+  assert.equal(profile.retry, undefined);
   assert.equal(profile.hideThinkingBlock, true);
   assert.deepEqual(profile.advisor, { enabled: false });
   assert.deepEqual(profile.task, {
@@ -308,12 +303,7 @@ fi
   assert.deepEqual(installed.task, {
     agentModelOverrides: { task: "openai-codex/gpt-5.6-luna:max" },
   });
-  assert.deepEqual(installed.retry, {
-    fallbackChains: {
-      "openai-codex/*": ["openai/*"],
-      "openai/*": ["openai-codex/*"],
-    },
-  });
+  assert.equal(installed.retry, undefined);
   assert.equal(installed.advisor.enabled, false);
   assert.equal(installed.hideThinkingBlock, true);
   assert.equal(installed.unmanaged.apiKey, "do-not-log-or-replace");
